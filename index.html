@@ -9,6 +9,8 @@
     <!-- Bootstrap 5 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- SortableJS for Drag & Drop Reordering -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
     <!-- Modern Typography: Prompt & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +45,27 @@
             --radius-md: 18px;
             --radius-lg: 24px;
             --radius-pill: 50px;
+        }
+
+        /* --- Drag & Drop Styles --- */
+        .sortable-ghost {
+            opacity: 0.4 !important;
+            background-color: #FFF1F0 !important;
+        }
+
+        .sortable-chosen {
+            background-color: #FFE4E1 !important;
+            box-shadow: 0 4px 14px rgba(138, 27, 19, 0.18) !important;
+        }
+
+        .drag-handle {
+            cursor: grab !important;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing !important;
         }
 
         /* --- Global & Typography --- */
@@ -1035,7 +1058,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
         <div class="container-fluid px-lg-4">
             <a class="navbar-brand d-flex align-items-center" href="#" onclick="showPage('home')">
-                <img src="https://img2.pic.in.th/_3-removebg-preview.png" alt="KKU Logo">
+                <img src="https://lh3.googleusercontent.com/d/1pB-8Qn75ZVnzhJhllPLbc0hI8k0jVJ-9" alt="KKU Logo">
                 <div>
                     <div class="brand-title">สโมสรนักศึกษาคณะสหวิทยาการ มข.</div>
                     <div class="brand-subtitle">Faculty of Interdisciplinary Studies Student Union, KKU</div>
@@ -1417,6 +1440,9 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
+                                        <th style="width: 45px;" class="text-center"><i
+                                                class="bi bi-arrows-move text-muted" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                        </th>
                                         <th style="width: 80px;">รูปภาพ</th>
                                         <th>ชื่อกิจกรรม</th>
                                         <th style="width: 120px;">สถานะ</th>
@@ -1439,6 +1465,9 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
+                                        <th style="width: 45px;" class="text-center"><i
+                                                class="bi bi-arrows-move text-muted" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                        </th>
                                         <th style="width: 80px;">รูปภาพ</th>
                                         <th>หัวข้อข่าวสาร</th>
                                         <th>ประเภทข่าว</th>
@@ -1461,6 +1490,9 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
+                                        <th style="width: 45px;" class="text-center"><i
+                                                class="bi bi-arrows-move text-muted" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                        </th>
                                         <th>วันที่จัด</th>
                                         <th>หัวข้อกำหนดการ</th>
                                         <th>เวลาและสถานที่</th>
@@ -1483,9 +1515,11 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
+                                        <th style="width: 45px;" class="text-center"><i
+                                                class="bi bi-arrows-move text-muted" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                        </th>
                                         <th>ชื่อองค์กร</th>
                                         <th style="width: 120px;" class="text-center">จำนวนสมาชิก</th>
-                                        <th style="width: 130px;" class="text-center">เลื่อนลำดับ</th>
                                         <th style="width: 250px;" class="text-center">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -2244,7 +2278,7 @@
                                     <th>ชื่อ-สกุล (ชื่อเล่น)</th>
                                     <th>ตำแหน่ง</th>
                                     <th>ช่องทางติดต่อ</th>
-                                    <th style="width: 110px;" class="text-center">เลื่อนลำดับ</th>
+                                    <th style="width: 150px;" class="text-center">ลากเลื่อนลำดับ</th>
                                     <th style="width: 150px;" class="text-center">การจัดการ</th>
                                 </tr>
                             </thead>
@@ -2598,7 +2632,8 @@
             <div class="row g-4 mb-4">
                 <div class="col-md-6">
                     <div class="footer-brand d-flex align-items-center gap-2">
-                        <img src="https://img2.pic.in.th/_3-removebg-preview.png" style="height: 36px;" alt="KKU Logo">
+                        <img src="https://lh3.googleusercontent.com/d/1pB-8Qn75ZVnzhJhllPLbc0hI8k0jVJ-9"
+                            style="height: 36px;" alt="KKU Logo">
                         <span>สโมสรนักศึกษาคณะสหวิทยาการ มข.</span>
                     </div>
                     <p class="small text-muted mb-0">องค์กรกิจกรรมนักศึกษา คณะสหวิทยาการ มหาวิทยาลัยขอนแก่น
@@ -3639,15 +3674,17 @@
 
         function renderAdminNewsTable() {
             const tbody = document.getElementById('admin-news-table-body');
+            if (!tbody) return;
             tbody.innerHTML = '';
             if (newsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูลข่าวในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ไม่มีข้อมูลข่าวในระบบ</td></tr>`;
                 return;
             }
             newsList.forEach(news => {
                 tbody.innerHTML += `
                     <tr>
-                        <td><img src="${news.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"></td>
+                        <td class="text-center align-middle"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i></td>
+                        <td><img src="${formatImageUrl(news.image)}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"></td>
                         <td>
                             <div class="fw-bold text-dark text-truncate" style="max-width: 350px;">${news.title}</div>
                             <small class="text-muted text-truncate d-block" style="max-width: 350px;">${news.summary}</small>
@@ -3660,6 +3697,24 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = newsList.splice(evt.oldIndex, 1)[0];
+                            newsList.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderNews();
+                        }
+                    }
+                });
+            }
         }
 
         // --- Calendar Admin ---
@@ -3756,20 +3811,17 @@
 
         function renderAdminCalendarTable() {
             const tbody = document.getElementById('admin-calendar-table-body');
+            if (!tbody) return;
             tbody.innerHTML = '';
             if (calendarEvents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ไม่มีการนัดหมายกำหนดการในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ไม่มีการนัดหมายกำหนดการในระบบ</td></tr>`;
                 return;
             }
 
-            calendarEvents.sort((a, b) => {
-                const monthDiff = parseInt(a.month) - parseInt(b.month);
-                if (monthDiff !== 0) return monthDiff;
-                return parseInt(a.date) - parseInt(b.date);
-            });
             calendarEvents.forEach(item => {
                 tbody.innerHTML += `
                     <tr>
+                        <td class="text-center align-middle"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i></td>
                         <td><span class="badge bg-danger fs-6">${item.date} ${item.monthName}</span></td>
                         <td><div class="fw-bold text-dark">${item.title}</div></td>
                         <td>
@@ -3783,6 +3835,25 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = calendarEvents.splice(evt.oldIndex, 1)[0];
+                            calendarEvents.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderCalendarTabs();
+                            filterCalendar('all');
+                        }
+                    }
+                });
+            }
         }
 
         // --- Activity Admin & Custom Sections Editor ---
@@ -4042,9 +4113,10 @@
 
         function renderAdminActivityTable() {
             const tbody = document.getElementById('admin-activity-table-body');
+            if (!tbody) return;
             tbody.innerHTML = '';
             if (activities.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ไม่มีประวัติรายการกิจกรรมในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ไม่มีประวัติรายการกิจกรรมในระบบ</td></tr>`;
                 return;
             }
 
@@ -4055,7 +4127,8 @@
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><img src="${act.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"></td>
+                        <td class="text-center align-middle"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i></td>
+                        <td><img src="${formatImageUrl(act.image)}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"></td>
                         <td>
                             <div class="fw-bold text-dark text-truncate" style="max-width: 350px;">${act.title}</div>
                             <small class="text-muted">${act.date}</small>
@@ -4068,6 +4141,24 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = activities.splice(evt.oldIndex, 1)[0];
+                            activities.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderActivities();
+                        }
+                    }
+                });
+            }
         }
 
         // --- Major Admin ---
@@ -4081,10 +4172,29 @@
 
         function renderAdminMajorsList() {
             const ul = document.getElementById('admin-major-list');
+            if (!ul) return;
             ul.innerHTML = '';
             majors.forEach((m, idx) => {
-                ul.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${m} <button class="btn btn-sm btn-outline-danger" onclick="deleteMajor(${idx})"><i class="bi bi-trash"></i></button></li>`;
+                ul.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center"><div class="d-flex align-items-center gap-2"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i><span>${m}</span></div> <button class="btn btn-sm btn-outline-danger" onclick="deleteMajor(${idx})"><i class="bi bi-trash"></i></button></li>`;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (ul._sortable) ul._sortable.destroy();
+                ul._sortable = Sortable.create(ul, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = majors.splice(evt.oldIndex, 1)[0];
+                            majors.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderMajorsDropdown();
+                        }
+                    }
+                });
+            }
         }
 
         function addMajor() {
@@ -4280,9 +4390,12 @@
                     <tr>
                         <td class="fw-bold text-dark">${org.name}</td>
                         <td class="text-center"><span class="badge bg-secondary">${org.members.length} คน</span></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-secondary px-2 py-0 me-1" onclick="moveOrgUp(${idx})" ${isFirst ? 'disabled' : ''} title="เลื่อนขึ้น"><i class="bi bi-arrow-up"></i></button>
-                            <button class="btn btn-sm btn-outline-secondary px-2 py-0" onclick="moveOrgDown(${idx})" ${isLast ? 'disabled' : ''} title="เลื่อนลง"><i class="bi bi-arrow-down"></i></button>
+                        <td class="text-center align-middle">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="bi bi-grip-vertical text-muted drag-handle fs-5 me-1" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-0 me-1" onclick="moveOrgUp(${idx})" ${isFirst ? 'disabled' : ''} title="เลื่อนขึ้น"><i class="bi bi-arrow-up"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-0" onclick="moveOrgDown(${idx})" ${isLast ? 'disabled' : ''} title="เลื่อนลง"><i class="bi bi-arrow-down"></i></button>
+                            </div>
                         </td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-info btn-pill me-1" onclick="openManageMembers(${org.id})"><i class="bi bi-people"></i> จัดการสมาชิก</button>
@@ -4292,6 +4405,25 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = organizations.splice(evt.oldIndex, 1)[0];
+                            organizations.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderAdminOrgs();
+                            renderPublicOrgs();
+                        }
+                    }
+                });
+            }
         }
 
         function openManageMembers(orgId) {
@@ -4328,6 +4460,7 @@
 
         function renderAdminMembers() {
             const tbody = document.getElementById('admin-members-table-body');
+            if (!tbody) return;
             tbody.innerHTML = '';
             const org = organizations.find(o => o.id === currentManageOrgId);
             if (!org || org.members.length === 0) {
@@ -4348,9 +4481,12 @@
                         </td>
                         <td><span class="badge bg-danger">${m.position}</span></td>
                         <td class="small text-muted">${m.contact || '-'}</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-secondary px-2 py-0 me-1" onclick="moveMemberUp(${idx})" ${isFirst ? 'disabled' : ''} title="เลื่อนขึ้น"><i class="bi bi-arrow-up"></i></button>
-                            <button class="btn btn-sm btn-outline-secondary px-2 py-0" onclick="moveMemberDown(${idx})" ${isLast ? 'disabled' : ''} title="เลื่อนลง"><i class="bi bi-arrow-down"></i></button>
+                        <td class="text-center align-middle">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="bi bi-grip-vertical text-muted drag-handle fs-5 me-1" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i>
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-0 me-1" onclick="moveMemberUp(${idx})" ${isFirst ? 'disabled' : ''} title="เลื่อนขึ้น"><i class="bi bi-arrow-up"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-0" onclick="moveMemberDown(${idx})" ${isLast ? 'disabled' : ''} title="เลื่อนลง"><i class="bi bi-arrow-down"></i></button>
+                            </div>
                         </td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openEditMemberModal(${m.id})"><i class="bi bi-pencil-square"></i> แก้ไข</button>
@@ -4359,6 +4495,26 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        const targetOrg = organizations.find(o => o.id === currentManageOrgId);
+                        if (targetOrg && evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = targetOrg.members.splice(evt.oldIndex, 1)[0];
+                            targetOrg.members.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderAdminMembers();
+                            renderPublicOrgs();
+                        }
+                    }
+                });
+            }
         }
 
         function openAddMemberModal() {
@@ -4751,7 +4907,7 @@
             tbody.innerHTML = '';
 
             if (equipmentList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">ยังไม่มีรายการอุปกรณ์ในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">ยังไม่มีรายการอุปกรณ์ในระบบ</td></tr>`;
                 return;
             }
 
@@ -4761,8 +4917,9 @@
 
                 tbody.innerHTML += `
                     <tr>
+                        <td class="text-center align-middle"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i></td>
                         <td>
-                            <img src="${equip.image || 'https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=500&q=80'}" class="rounded-3 border" style="width: 50px; height: 50px; object-fit: cover;">
+                            <img src="${formatImageUrl(equip.image) || 'https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=500&q=80'}" class="rounded-3 border" style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
                         <td>
                             <strong class="text-dark d-block">${equip.name}</strong>
@@ -4779,6 +4936,24 @@
                     </tr>
                 `;
             });
+
+            if (typeof Sortable !== 'undefined') {
+                if (tbody._sortable) tbody._sortable.destroy();
+                tbody._sortable = Sortable.create(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+                            const moved = equipmentList.splice(evt.oldIndex, 1)[0];
+                            equipmentList.splice(evt.newIndex, 0, moved);
+                            saveAllToLocalStorage();
+                            renderEquipmentCatalog();
+                        }
+                    }
+                });
+            }
         }
 
         function getUniqueEquipmentCategories() {
