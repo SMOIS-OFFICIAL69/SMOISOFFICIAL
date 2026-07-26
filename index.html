@@ -2799,15 +2799,28 @@
                         <div class="text-center mb-4" style="margin-top: -3.5rem;">
                             <div class="position-relative d-inline-block">
                                 <img id="detail-member-img" src=""
-                                    class="rounded-circle shadow-lg border border-4 border-white"
-                                    style="width: 110px; height: 110px; object-fit: cover; background: #fff;">
-                                <span
-                                    class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-2"
-                                    title="สถานะปฏิบัติงานปกติ"></span>
+                                    class="rounded-circle shadow-lg border border-4 border-white cursor-pointer"
+                                    style="width: 110px; height: 110px; object-fit: cover; background: #fff; cursor: pointer; transition: transform 0.2s ease;"
+                                    onclick="viewFullImage(this.src, document.getElementById('detail-member-fullname').innerText)"
+                                    title="คลิกเพื่อดูรูปขนาดเต็ม">
+                                <button type="button"
+                                    class="position-absolute bottom-0 end-0 bg-danger text-white border border-2 border-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm"
+                                    style="width: 32px; height: 32px; cursor: pointer;"
+                                    onclick="viewFullImage(document.getElementById('detail-member-img').src, document.getElementById('detail-member-fullname').innerText)"
+                                    title="ดูรูปขนาดเต็ม">
+                                    <i class="bi bi-arrows-angle-expand small"></i>
+                                </button>
                             </div>
                             <h5 class="fw-bold text-dark mt-3 mb-1" id="detail-member-name-nickname"></h5>
                             <div class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2 fs-6 fw-semibold mb-2"
                                 id="detail-member-position"></div>
+                            <div class="mt-1">
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 shadow-sm"
+                                    onclick="viewFullImage(document.getElementById('detail-member-img').src, document.getElementById('detail-member-fullname').innerText)">
+                                    <i class="bi bi-arrows-fullscreen me-1"></i> ดูรูปขนาดเต็ม
+                                </button>
+                            </div>
                         </div>
 
                         <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
@@ -2834,6 +2847,37 @@
                     <div class="modal-footer border-0 bg-light px-4 pb-4 pt-0">
                         <button type="button" class="btn btn-secondary rounded-pill px-4"
                             data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Image Preview Modal (Full size) -->
+        <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg bg-dark text-white rounded-4 overflow-hidden">
+                    <div class="modal-header border-0 bg-black bg-opacity-75 p-3">
+                        <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2 m-0"
+                            id="imagePreviewTitle">
+                            <i class="bi bi-image text-danger"></i> รูปขนาดเต็ม
+                        </h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-3 text-center bg-black d-flex flex-column align-items-center justify-content-center"
+                        style="min-height: 350px;">
+                        <img id="imagePreviewImg" src="" class="img-fluid rounded-3 shadow-lg"
+                            style="max-height: 75vh; object-fit: contain; width: auto;" alt="Full Size Image">
+                    </div>
+                    <div
+                        class="modal-footer border-0 bg-black bg-opacity-75 p-3 d-flex justify-content-between align-items-center">
+                        <a id="imagePreviewOpenBtn" href="#" target="_blank" rel="noopener noreferrer"
+                            class="btn btn-outline-light btn-sm rounded-pill px-3">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> เปิดรูปในแท็บใหม่
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm rounded-pill px-4" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i> ปิด
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3239,7 +3283,7 @@
         let currentLoggedInUser = null;
         let currentManageOrgId = null;
 
-        let registerModal, eventFormModal, newsFormModal, calendarFormModal, userFormModal, newsDetailModal, eventDetailModal, memberDetailModal;
+        let registerModal, eventFormModal, newsFormModal, calendarFormModal, userFormModal, newsDetailModal, eventDetailModal, memberDetailModal, imagePreviewModal;
         let orgFormModal, manageMembersModal, memberFormModal, borrowModal, equipmentFormModal, borrowRequestEditModal;
 
         let isSyncingWithServer = false;
@@ -3253,6 +3297,7 @@
             newsDetailModal = new bootstrap.Modal(document.getElementById('newsDetailModal'));
             eventDetailModal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
             memberDetailModal = new bootstrap.Modal(document.getElementById('memberDetailModal'));
+            imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
             orgFormModal = new bootstrap.Modal(document.getElementById('orgFormModal'));
             manageMembersModal = new bootstrap.Modal(document.getElementById('manageMembersModal'));
             memberFormModal = new bootstrap.Modal(document.getElementById('memberFormModal'), { backdrop: 'static' });
@@ -4848,20 +4893,32 @@
 
                 let membersHTML = matchingMembers.map(m => `
                     <div class="col-md-4 col-sm-6 mb-4">
-                        <div class="card border-0 shadow-sm h-100 text-center p-3 member-card-interactive" 
+                        <div class="card border-0 shadow-sm h-100 text-center p-3 member-card-interactive position-relative" 
                              style="border-radius: var(--radius-md);"
                              onclick="openMemberDetailModal(${org.id}, ${m.id})">
-                            <img src="${formatImageUrl(m.image)}" class="mx-auto mt-2 shadow-sm member-avatar" style="width: 95px; height: 95px; object-fit: cover; border-radius: 50%; border: 3px solid var(--kku-primary-light);">
-                            <div class="card-body px-1 d-flex flex-column justify-content-between">
+                            <div class="position-relative d-inline-block mx-auto mt-2" 
+                                 onclick="event.stopPropagation(); viewFullImage('${m.image}', '${(m.fullname || '').replace(/'/g, "\\'")}')"
+                                 title="คลิกเพื่อดูรูปขนาดเต็ม">
+                                <img src="${formatImageUrl(m.image)}" class="shadow-sm member-avatar" style="width: 95px; height: 95px; object-fit: cover; border-radius: 50%; border: 3px solid var(--kku-primary-light); cursor: pointer; transition: transform 0.25s ease;">
+                                <span class="position-absolute bottom-0 end-0 bg-danger text-white border border-2 border-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm" 
+                                      style="width: 26px; height: 26px; font-size: 0.7rem; cursor: pointer;" title="ดูรูปขนาดเต็ม">
+                                    <i class="bi bi-arrows-angle-expand"></i>
+                                </span>
+                            </div>
+                            <div class="card-body px-1 d-flex flex-column justify-content-between mt-1">
                                 <div>
                                     <h6 class="fw-bold text-dark mb-1">${m.fullname} ${m.nickname ? `(${m.nickname})` : ''}</h6>
                                     <p class="text-danger small fw-medium mb-2">${m.position}</p>
                                     ${m.contact ? `<small class="text-muted d-block bg-light p-2 rounded-3 text-truncate mb-2" style="font-size: 0.78rem;" title="${m.contact}"><i class="bi bi-person-lines-fill me-1"></i>${m.contact}</small>` : ''}
                                 </div>
-                                <div class="mt-2">
+                                <div class="mt-2 d-flex justify-content-center gap-1">
                                     <span class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-nowrap" style="font-size: 0.75rem;">
-                                        <i class="bi bi-person-circle me-1"></i>ดูข้อมูลส่วนตัว
+                                        <i class="bi bi-person-circle me-1"></i>ดูข้อมูล
                                     </span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1 text-nowrap" style="font-size: 0.75rem;" 
+                                            onclick="event.stopPropagation(); viewFullImage('${m.image}', '${(m.fullname || '').replace(/'/g, "\\'")}')" title="ดูรูปขนาดเต็ม">
+                                        <i class="bi bi-arrows-fullscreen me-1"></i>รูปเต็ม
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -4888,6 +4945,25 @@
             if (query !== '' && totalMembersFound === 0) {
                 container.innerHTML = `<div class="text-center py-5 text-muted"><i class="bi bi-search fs-1 d-block mb-2"></i><p class="mb-0">ไม่พบรายชื่อบุคลากรที่ตรงกับคำค้นหา "${searchQuery}"</p></div>`;
             }
+        }
+
+        function viewFullImage(url, title = 'รูปขนาดเต็ม') {
+            if (!url || typeof url !== 'string' || url.trim() === '') return;
+            const formatted = formatImageUrl(url);
+
+            const titleEl = document.getElementById('imagePreviewTitle');
+            const imgEl = document.getElementById('imagePreviewImg');
+            const openBtn = document.getElementById('imagePreviewOpenBtn');
+
+            if (titleEl) titleEl.innerHTML = `<i class="bi bi-image text-danger me-2"></i> ${title || 'รูปขนาดเต็ม'}`;
+            if (imgEl) imgEl.src = formatted;
+            if (openBtn) openBtn.href = formatted;
+
+            if (!imagePreviewModal) {
+                const modalEl = document.getElementById('imagePreviewModal');
+                if (modalEl) imagePreviewModal = new bootstrap.Modal(modalEl);
+            }
+            if (imagePreviewModal) imagePreviewModal.show();
         }
 
         let currentSelectedMemberContact = '';
