@@ -2803,24 +2803,10 @@
                                     style="width: 110px; height: 110px; object-fit: cover; background: #fff; cursor: pointer; transition: transform 0.2s ease;"
                                     onclick="viewFullImage(this.src, document.getElementById('detail-member-fullname').innerText)"
                                     title="คลิกเพื่อดูรูปขนาดเต็ม">
-                                <button type="button"
-                                    class="position-absolute bottom-0 end-0 bg-danger text-white border border-2 border-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm"
-                                    style="width: 32px; height: 32px; cursor: pointer;"
-                                    onclick="viewFullImage(document.getElementById('detail-member-img').src, document.getElementById('detail-member-fullname').innerText)"
-                                    title="ดูรูปขนาดเต็ม">
-                                    <i class="bi bi-arrows-angle-expand small"></i>
-                                </button>
                             </div>
                             <h5 class="fw-bold text-dark mt-3 mb-1" id="detail-member-name-nickname"></h5>
                             <div class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2 fs-6 fw-semibold mb-2"
                                 id="detail-member-position"></div>
-                            <div class="mt-1">
-                                <button type="button"
-                                    class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 shadow-sm"
-                                    onclick="viewFullImage(document.getElementById('detail-member-img').src, document.getElementById('detail-member-fullname').innerText)">
-                                    <i class="bi bi-arrows-fullscreen me-1"></i> ดูรูปขนาดเต็ม
-                                </button>
-                            </div>
                         </div>
 
                         <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
@@ -4900,10 +4886,6 @@
                                  onclick="event.stopPropagation(); viewFullImage('${m.image}', '${(m.fullname || '').replace(/'/g, "\\'")}')"
                                  title="คลิกเพื่อดูรูปขนาดเต็ม">
                                 <img src="${formatImageUrl(m.image)}" class="shadow-sm member-avatar" style="width: 95px; height: 95px; object-fit: cover; border-radius: 50%; border: 3px solid var(--kku-primary-light); cursor: pointer; transition: transform 0.25s ease;">
-                                <span class="position-absolute bottom-0 end-0 bg-danger text-white border border-2 border-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm" 
-                                      style="width: 26px; height: 26px; font-size: 0.7rem; cursor: pointer;" title="ดูรูปขนาดเต็ม">
-                                    <i class="bi bi-arrows-angle-expand"></i>
-                                </span>
                             </div>
                             <div class="card-body px-1 d-flex flex-column justify-content-between mt-1">
                                 <div>
@@ -4911,14 +4893,10 @@
                                     <p class="text-danger small fw-medium mb-2">${m.position}</p>
                                     ${m.contact ? `<small class="text-muted d-block bg-light p-2 rounded-3 text-truncate mb-2" style="font-size: 0.78rem;" title="${m.contact}"><i class="bi bi-person-lines-fill me-1"></i>${m.contact}</small>` : ''}
                                 </div>
-                                <div class="mt-2 d-flex justify-content-center gap-1">
+                                <div class="mt-2">
                                     <span class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-nowrap" style="font-size: 0.75rem;">
-                                        <i class="bi bi-person-circle me-1"></i>ดูข้อมูล
+                                        <i class="bi bi-person-circle me-1"></i>ดูข้อมูลส่วนตัว
                                     </span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1 text-nowrap" style="font-size: 0.75rem;" 
-                                            onclick="event.stopPropagation(); viewFullImage('${m.image}', '${(m.fullname || '').replace(/'/g, "\\'")}')" title="ดูรูปขนาดเต็ม">
-                                        <i class="bi bi-arrows-fullscreen me-1"></i>รูปเต็ม
-                                    </button>
                                 </div>
                             </div>
                         </div>
