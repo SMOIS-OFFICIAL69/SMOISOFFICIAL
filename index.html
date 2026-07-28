@@ -2102,12 +2102,19 @@
                                 placeholder="พิมพ์หัวข้อข่าวเด่น...">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-medium">ลิงก์รูปภาพประกอบ (ข่าว)</label>
-                            <input type="text" class="form-control" id="modal-news-img"
-                                placeholder="วางลิงก์รูปทั่วไป หรือ ลิงก์ Google Drive (https://drive.google.com/...)"
-                                required>
-                            <small class="text-muted"><i class="bi bi-info-circle me-1"></i> รองรับลิงก์แชร์จาก Google
-                                Drive (แปลงเป็นรูปภาพอัตโนมัติ)</small>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-medium mb-0">ลิงก์รูปภาพประกอบ (ใส่ได้หลายรูป)</label>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                    onclick="addNewsImageInput()">
+                                    <i class="bi bi-plus-lg me-1"></i>เพิ่มช่องใส่รูป
+                                </button>
+                            </div>
+                            <div id="news-images-container" class="d-flex flex-column gap-2">
+                                <!-- Dynamic news image input rows -->
+                            </div>
+                            <small class="text-muted d-block mt-2"><i class="bi bi-info-circle me-1"></i>
+                                สามารถใส่รูปได้มากกว่า 1 รูป เพิ่มช่องได้ไม่จำกัดด้วยปุ่ม + (รองรับลิงก์ทั่วไป และ
+                                Google Drive)</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -2153,7 +2160,7 @@
     <div class="modal fade" id="newsDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content overflow-hidden border-0 shadow-lg rounded-4">
-                <div class="text-center bg-dark position-relative">
+                <div class="text-center bg-dark position-relative" id="detail-news-gallery-container">
                     <img id="detail-news-img" src="" alt="News Image"
                         style="width: 100%; max-height: 80vh; object-fit: contain; background: #0F172A; display: block; margin: 0 auto;">
                 </div>
@@ -2972,6 +2979,10 @@
                 category: "ข่าวประชาสัมพันธ์",
                 badgeClass: "bg-danger",
                 image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&q=80",
+                images: [
+                    "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&q=80",
+                    "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=500&q=80"
+                ],
                 summary: "ขอเชิญชวนเพื่อน ๆ นักศึกษาทุกสาขาชั้นปี ร่วมสมัครมาสร้างสรรค์กิจกรรมเจ๋งๆ ร่วมกันในปีนี้...",
                 content: "สโมสรนักศึกษาคณะสหวิทยาการ มหาวิทยาลัยขอนแก่น วิทยาเขตหนองคาย ขอเชิญชวนเพื่อน ๆ นักศึกษาทุกสาขาวิชา ทุกชั้นปี ร่วมสมัครเป็นผู้ร่วมงานในฝ่ายต่าง ๆ ของสโมสรนักศึกษา ประจำปีการศึกษา 2569\n\nฝ่ายที่เปิดรับสมัคร ได้แก่ ฝ่ายกิจกรรมและสันทนาการ ฝ่ายประชาสัมพันธ์ ฝ่ายวิชาการ ฝ่ายศิลปวัฒนธรรม และฝ่ายสวัสดิการนักศึกษา\n\nผู้สนใจสามารถแจ้งความประสงค์ได้ที่ห้องสโมสรนักศึกษา หรือติดต่อสอบถามผ่านช่องทางการติดต่อของสโมสรฯ ได้ตั้งแต่วันนี้เป็นต้นไป"
             },
@@ -2981,6 +2992,10 @@
                 category: "ข่าวกิจกรรม",
                 badgeClass: "bg-success",
                 image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80",
+                images: [
+                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&q=80",
+                    "https://images.unsplash.com/photo-1511578314322-379afb476865?w=500&q=80"
+                ],
                 summary: "ขอบคุณรุ่นพี่และเพื่อน ๆ น้องใหม่ทุกคนที่ร่วมแรงร่วมใจจัดโครงการต้อนรับสุดอบอุ่นและประทับใจ...",
                 content: "สโมสรนักศึกษาคณะสหวิทยาการขอขอบคุณรุ่นพี่และน้องใหม่ทุกคนที่ร่วมแรงร่วมใจกันจัดและเข้าร่วมโครงการแรกรู้จัก สานสัมพันธ์ สร้างสรรค์กิจกรรม ประจำปีการศึกษา 2569 จนสำเร็จลุล่วงไปได้ด้วยดี\n\nกิจกรรมภายในงานประกอบด้วยฐานกิจกรรมสันทนาการ การแนะนำสาขาวิชา และกิจกรรมสร้างความสัมพันธ์ระหว่างรุ่นพี่รุ่นน้อง ซึ่งได้รับความร่วมมือและเสียงตอบรับที่ดีจากผู้เข้าร่วมงานเป็นอย่างมาก\n\nสโมสรฯ หวังเป็นอย่างยิ่งว่ากิจกรรมนี้จะเป็นจุดเริ่มต้นที่ดีของความสัมพันธ์อันอบอุ่นระหว่างนักศึกษาในคณะต่อไป"
             },
@@ -2990,6 +3005,9 @@
                 category: "ข่าวทั่วไป",
                 badgeClass: "bg-secondary",
                 image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=500&q=80",
+                images: [
+                    "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=500&q=80"
+                ],
                 summary: "สโมสรฯ พร้อมเปิดรับฟังเสียงของนักศึกษา สามารถสแกนคิวอาร์โค้ดส่งประเด็นแนะนำได้ตลอดยี่สิบสี่ชั่วโมง...",
                 content: "สโมสรนักศึกษาคณะสหวิทยาการเปิดรับฟังเสียงของนักศึกษาทุกคน เพื่อนำไปพัฒนาและจัดกิจกรรมให้ตรงกับความต้องการของนักศึกษามากที่สุด\n\nหากเพื่อน ๆ มีไอเดียกิจกรรมที่อยากให้สโมสรฯ จัดขึ้นในปีการศึกษานี้ ไม่ว่าจะเป็นกิจกรรมด้านวิชาการ กีฬา ศิลปวัฒนธรรม หรือกิจกรรมสันทนาการ สามารถส่งข้อเสนอแนะเข้ามาได้ตลอด 24 ชั่วโมง ผ่านช่องทางที่สโมสรฯ ประชาสัมพันธ์ไว้\n\nทุกข้อเสนอแนะจะถูกนำไปพิจารณาในที่ประชุมสโมสรนักศึกษาเพื่อวางแผนจัดกิจกรรมในลำดับถัดไป"
             }
@@ -3543,12 +3561,19 @@
             }
 
             newsList.forEach(news => {
+                const imgs = (Array.isArray(news.images) && news.images.length > 0)
+                    ? news.images
+                    : (news.image ? [news.image] : []);
+                const mainImg = imgs[0] ? formatImageUrl(imgs[0]) : '';
+                const multiImgBadge = imgs.length > 1 ? `<span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 end-0 m-2 rounded-pill px-2 py-1 small z-2"><i class="bi bi-images me-1"></i>${imgs.length} รูป</span>` : '';
+
                 container.innerHTML += `
                     <div class="news-slider-item">
                         <div class="news-card h-100" onclick="openNewsDetail(${news.id})" style="cursor: pointer;">
-                            <div class="news-img-wrapper">
+                            <div class="news-img-wrapper position-relative">
                                 <span class="badge ${news.badgeClass || 'bg-danger'} news-badge-overlay">${news.category}</span>
-                                <img src="${formatImageUrl(news.image)}" class="news-img" alt="News Image">
+                                ${multiImgBadge}
+                                <img src="${mainImg}" class="news-img" alt="News Image">
                             </div>
                             <div class="news-card-body d-flex flex-column justify-content-between">
                                 <div>
@@ -3568,11 +3593,116 @@
             if (container) container.scrollBy({ left: offset, behavior: 'smooth' });
         }
 
+        function renderNewsDetailGallery(images) {
+            const container = document.getElementById('detail-news-gallery-container');
+            if (!container) return;
+
+            const formattedImages = (Array.isArray(images) ? images : [])
+                .map(img => formatImageUrl(img))
+                .filter(img => img && img.trim() !== '');
+
+            if (formattedImages.length === 0) {
+                container.innerHTML = `<img id="detail-news-img" src="" alt="News Image" style="width: 100%; max-height: 80vh; object-fit: contain; background: #0F172A; display: block; margin: 0 auto;">`;
+                return;
+            }
+
+            if (formattedImages.length === 1) {
+                container.innerHTML = `
+                    <img id="detail-news-img" src="${formattedImages[0]}" alt="News Image"
+                        style="width: 100%; max-height: 80vh; object-fit: contain; background: #0F172A; display: block; margin: 0 auto;">
+                `;
+                return;
+            }
+
+            // Multiple images: Bootstrap Carousel + Thumbnail bar below
+            let carouselIndicators = '';
+            let carouselSlides = '';
+            let thumbnailBar = '<div class="d-flex justify-content-center gap-2 p-2 bg-dark border-top overflow-x-auto" style="max-width: 100%;">';
+
+            formattedImages.forEach((imgUrl, index) => {
+                const activeClass = index === 0 ? 'active' : '';
+                const activeAttr = index === 0 ? 'aria-current="true"' : '';
+
+                carouselIndicators += `
+                    <button type="button" data-bs-target="#newsDetailCarousel" data-bs-slide-to="${index}" class="${activeClass}" ${activeAttr} aria-label="Slide ${index + 1}"></button>
+                `;
+
+                carouselSlides += `
+                    <div class="carousel-item ${activeClass}">
+                        <img src="${imgUrl}" alt="News Image ${index + 1}"
+                            style="width: 100%; max-height: 70vh; height: 500px; object-fit: contain; background: #0F172A; display: block; margin: 0 auto;">
+                    </div>
+                `;
+
+                thumbnailBar += `
+                    <img src="${imgUrl}" class="rounded border news-thumb-item ${index === 0 ? 'border-danger border-2' : 'opacity-75'}" 
+                         style="width: 65px; height: 48px; object-fit: cover; cursor: pointer; transition: all 0.2s ease;" 
+                         onclick="selectNewsCarouselSlide(${index})">
+                `;
+            });
+
+            thumbnailBar += '</div>';
+
+            container.innerHTML = `
+                <div id="newsDetailCarousel" class="carousel slide position-relative" data-bs-ride="carousel">
+                    <div class="carousel-indicators mb-2">
+                        ${carouselIndicators}
+                    </div>
+                    <div class="carousel-inner">
+                        ${carouselSlides}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#newsDetailCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon bg-dark bg-opacity-50 rounded-circle p-3" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#newsDetailCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon bg-dark bg-opacity-50 rounded-circle p-3" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 end-0 m-3 z-3 shadow-sm" style="font-size: 0.85rem;"><i class="bi bi-images me-1 text-danger"></i>รูปที่ <span id="news-slide-current-num">1</span> / ${formattedImages.length}</span>
+                </div>
+                ${thumbnailBar}
+            `;
+
+            const carouselEl = document.getElementById('newsDetailCarousel');
+            if (carouselEl) {
+                carouselEl.addEventListener('slide.bs.carousel', function (e) {
+                    const idx = e.to;
+                    const numEl = document.getElementById('news-slide-current-num');
+                    if (numEl) numEl.innerText = idx + 1;
+
+                    const thumbs = container.querySelectorAll('.news-thumb-item');
+                    thumbs.forEach((thumb, i) => {
+                        if (i === idx) {
+                            thumb.classList.add('border-danger', 'border-2');
+                            thumb.classList.remove('opacity-75');
+                        } else {
+                            thumb.classList.remove('border-danger', 'border-2');
+                            thumb.classList.add('opacity-75');
+                        }
+                    });
+                });
+            }
+        }
+
+        function selectNewsCarouselSlide(index) {
+            const carouselEl = document.getElementById('newsDetailCarousel');
+            if (carouselEl && window.bootstrap) {
+                const carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+                carousel.to(index);
+            }
+        }
+
         function openNewsDetail(id) {
             const news = newsList.find(n => n.id === id);
             if (!news) return;
 
-            document.getElementById('detail-news-img').src = formatImageUrl(news.image);
+            const images = (Array.isArray(news.images) && news.images.length > 0)
+                ? news.images
+                : (news.image ? [news.image] : []);
+
+            renderNewsDetailGallery(images);
+
             document.getElementById('detail-news-badge').className = 'badge mb-2 ' + (news.badgeClass || 'bg-danger');
             document.getElementById('detail-news-badge').innerText = news.category;
             document.getElementById('detail-news-title').innerText = news.title;
@@ -3801,11 +3931,66 @@
             document.getElementById('btn-tab-' + tabId).classList.add('active');
         }
 
+        // --- News Admin Dynamic Image Inputs ---
+        function renderNewsImageInputs(imagesArray) {
+            const container = document.getElementById('news-images-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const list = (Array.isArray(imagesArray) && imagesArray.length > 0) ? imagesArray : [''];
+            list.forEach(url => {
+                addNewsImageInput(url);
+            });
+        }
+
+        function addNewsImageInput(url = '') {
+            const container = document.getElementById('news-images-container');
+            if (!container) return;
+
+            const div = document.createElement('div');
+            div.className = 'input-group news-img-input-group';
+            div.innerHTML = `
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-image"></i></span>
+                <input type="text" class="form-control modal-news-img-item" placeholder="วางลิงก์รูปทั่วไป หรือ Google Drive..." value="${url || ''}">
+                <button type="button" class="btn btn-outline-secondary text-danger" onclick="removeNewsImageInput(this)" title="ลบช่องนี้">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeNewsImageInput(btn) {
+            const container = document.getElementById('news-images-container');
+            if (!container) return;
+
+            const group = btn.closest('.news-img-input-group');
+            if (group) {
+                group.remove();
+            }
+
+            if (container.querySelectorAll('.modal-news-img-item').length === 0) {
+                addNewsImageInput('');
+            }
+        }
+
+        function getNewsImagesFromForm() {
+            const inputs = document.querySelectorAll('.modal-news-img-item');
+            const images = [];
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val) {
+                    images.push(val);
+                }
+            });
+            return images;
+        }
+
         // --- News Admin ---
         function openAddNewsModal() {
             document.getElementById('newsModalTitle').innerText = 'เพิ่มข่าวประชาสัมพันธ์';
             document.getElementById('modal-news-id').value = '';
             document.getElementById('newsForm').reset();
+            renderNewsImageInputs(['']);
             newsFormModal.show();
         }
 
@@ -3816,11 +4001,15 @@
             document.getElementById('newsModalTitle').innerText = 'แก้ไขข้อมูลข่าวประชาสัมพันธ์';
             document.getElementById('modal-news-id').value = news.id;
             document.getElementById('modal-news-title').value = news.title;
-            document.getElementById('modal-news-img').value = news.image;
             document.getElementById('modal-news-cat').value = news.category;
             document.getElementById('modal-news-badge').value = news.badgeClass || 'bg-danger';
             document.getElementById('modal-news-summary').value = news.summary;
             document.getElementById('modal-news-content').value = news.content || '';
+
+            const imgs = (Array.isArray(news.images) && news.images.length > 0)
+                ? news.images
+                : (news.image ? [news.image] : ['']);
+            renderNewsImageInputs(imgs);
 
             newsFormModal.show();
         }
@@ -3828,14 +4017,16 @@
         function saveNews() {
             const id = document.getElementById('modal-news-id').value;
             const title = document.getElementById('modal-news-title').value.trim();
-            const img = formatImageUrl(document.getElementById('modal-news-img').value);
+            const rawImages = getNewsImagesFromForm();
+            const formattedImages = rawImages.map(img => formatImageUrl(img)).filter(img => img !== '');
+            const mainImg = formattedImages.length > 0 ? formattedImages[0] : '';
             const cat = document.getElementById('modal-news-cat').value.trim();
             const badge = document.getElementById('modal-news-badge').value;
             const summary = document.getElementById('modal-news-summary').value.trim();
             const content = document.getElementById('modal-news-content').value.trim();
 
-            if (!title || !img || !summary) {
-                alert('กรุณากรอกหัวข้อ ข้อมูลรูป และสรุปข่าวให้ครบถ้วน');
+            if (!title || formattedImages.length === 0 || !summary) {
+                alert('กรุณากรอกหัวข้อ อย่างน้อย 1 รูปภาพ และสรุปข่าวให้ครบถ้วน');
                 return;
             }
 
@@ -3843,7 +4034,8 @@
                 const newNews = {
                     id: Date.now(),
                     title: title,
-                    image: img,
+                    image: mainImg,
+                    images: formattedImages,
                     category: cat || 'ข่าวทั่วไป',
                     badgeClass: badge,
                     summary: summary,
@@ -3854,7 +4046,8 @@
                 const idx = newsList.findIndex(n => n.id === parseInt(id));
                 if (idx !== -1) {
                     newsList[idx].title = title;
-                    newsList[idx].image = img;
+                    newsList[idx].image = mainImg;
+                    newsList[idx].images = formattedImages;
                     newsList[idx].category = cat || 'ข่าวทั่วไป';
                     newsList[idx].badgeClass = badge;
                     newsList[idx].summary = summary;
@@ -3886,10 +4079,17 @@
                 return;
             }
             newsList.forEach(news => {
+                const imgs = (Array.isArray(news.images) && news.images.length > 0) ? news.images : (news.image ? [news.image] : []);
+                const mainImg = imgs[0] ? formatImageUrl(imgs[0]) : '';
+                const countBadge = imgs.length > 1 ? `<span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle shadow-sm">${imgs.length}</span>` : '';
+
                 tbody.innerHTML += `
                     <tr>
                         <td class="text-center align-middle"><i class="bi bi-grip-vertical text-muted drag-handle fs-5" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i></td>
-                        <td><img src="${formatImageUrl(news.image)}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"></td>
+                        <td class="position-relative align-middle" style="width: 70px;">
+                            <img src="${mainImg}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                            ${countBadge}
+                        </td>
                         <td>
                             <div class="fw-bold text-dark text-truncate" style="max-width: 350px;">${news.title}</div>
                             <small class="text-muted text-truncate d-block" style="max-width: 350px;">${news.summary}</small>
