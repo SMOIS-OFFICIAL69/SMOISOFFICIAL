@@ -122,6 +122,42 @@ function doGet(e) {
       return createJsonResponse({ status: 'success', state: state });
     }
 
+    // 1.3 ดึงข้อมูลรายชื่อผู้ลงทะเบียนกิจกรรม (getActivityRegistrations)
+    if (action === 'getActivityRegistrations') {
+      var targetTitle = (params.activityTitle || '').toString().trim();
+      var ss = getSpreadsheet();
+      var registrations = [];
+
+      if (ss && targetTitle) {
+        var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
+        if (regSheet) {
+          var lastRow = regSheet.getLastRow();
+          if (lastRow > 1) {
+            var values = regSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+            for (var r = 0; r < values.length; r++) {
+              var row = values[r];
+              var actTitle = (row[0] || '').toString().trim();
+              if (actTitle.toLowerCase() === targetTitle.toLowerCase() || targetTitle === 'all') {
+                registrations.push({
+                  activityTitle: row[0],
+                  timestamp: row[1],
+                  studentId: row[2],
+                  name: row[3],
+                  major: row[4],
+                  year: row[5],
+                  phone: row[6],
+                  medical: row[7],
+                  customAnswers: row[8]
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return createJsonResponse({ status: 'success', registrations: registrations });
+    }
+
     // 2. หน้าเว็บขอซิงค์สถิติจำนวนผู้สมัครจริงจากชีทลงทะเบียนกิจกรรม (syncApplicantsFromGoogleSheets)
     var ss = getSpreadsheet();
     var stats = {};
@@ -225,7 +261,96 @@ function doPost(e) {
       return createJsonResponse({ status: 'success', message: 'Borrow request recorded to Sheets & Drive' });
     }
 
-    // 3. นักศึกษาลงทะเบียนเข้าร่วมกิจกรรม (registerActivity) -> Google Sheets & Google Drive
+    // 3. แก้ไขข้อมูลผู้ลงทะเบียนกิจกรรม (updateRegistration) -> Google Sheets
+    if (data.action === 'updateRegistration') {
+      var targetTitle = (data.activityTitle || '').toString().trim();
+      var targetStudentId = (data.oldStudentId || data.studentId || '').toString().trim();
+      var targetTimestamp = (data.timestamp || '').toString().trim();
+
+      var ss = getSpreadsheet();
+      var regSheet = ss ? ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม") : null;
+      var updated = false;
+
+      if (regSheet) {
+        var lastRow = regSheet.getLastRow();
+        if (lastRow > 1) {
+          var values = regSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+          for (var u = 0; u < values.length; u++) {
+            var rTitle = (values[u][0] || '').toString().trim();
+            var rTime = (values[u][1] || '').toString().trim();
+            var rStudentId = (values[u][2] || '').toString().trim();
+
+            var matchesTitle = (rTitle.toLowerCase() === targetTitle.toLowerCase());
+            var matchesStudent = (rStudentId === targetStudentId || (targetTimestamp && rTime === targetTimestamp));
+
+            if (matchesTitle && matchesStudent) {
+              var rowIndex = u + 2;
+              var newYear = data.year ? (data.year.toString().indexOf('ปี') !== -1 ? data.year : 'ปี ' + data.year) : '-';
+              regSheet.getRange(rowIndex, 3, 1, 7).setValues([[
+                data.studentId || rStudentId,
+                data.name || '-',
+                data.major || '-',
+                newYear,
+                data.phone || '-',
+                data.medical || '-',
+                data.customAnswers || '-'
+              ]]);
+              updated = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (updated) {
+        try { updateOrAddStudentProfile(ss, { studentId: data.studentId, name: data.name, major: data.major, year: data.year, phone: data.phone, medical: data.medical }); } catch (e) {}
+        try { updateActivitySummarySheet(ss); } catch (e) {}
+        return createJsonResponse({ status: 'success', message: 'แก้ไขข้อมูลผู้ลงทะเบียนเรียบร้อยแล้ว' });
+      } else {
+        return createJsonResponse({ status: 'error', message: 'ไม่พบรายการผู้ลงทะเบียนที่ต้องการแก้ไข' });
+      }
+    }
+
+    // 4. ลบข้อมูลผู้ลงทะเบียนกิจกรรม (deleteRegistration) -> Google Sheets
+    if (data.action === 'deleteRegistration') {
+      var targetTitle = (data.activityTitle || '').toString().trim();
+      var targetStudentId = (data.studentId || '').toString().trim();
+      var targetTimestamp = (data.timestamp || '').toString().trim();
+
+      var ss = getSpreadsheet();
+      var regSheet = ss ? ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม") : null;
+      var deleted = false;
+
+      if (regSheet) {
+        var lastRow = regSheet.getLastRow();
+        if (lastRow > 1) {
+          var values = regSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+          for (var d = values.length - 1; d >= 0; d--) {
+            var rTitle = (values[d][0] || '').toString().trim();
+            var rTime = (values[d][1] || '').toString().trim();
+            var rStudentId = (values[d][2] || '').toString().trim();
+
+            var matchesTitle = (rTitle.toLowerCase() === targetTitle.toLowerCase());
+            var matchesStudent = (rStudentId === targetStudentId || (targetTimestamp && rTime === targetTimestamp));
+
+            if (matchesTitle && matchesStudent) {
+              regSheet.deleteRow(d + 2);
+              deleted = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (deleted) {
+        try { updateActivitySummarySheet(ss); } catch (e) {}
+        return createJsonResponse({ status: 'success', message: 'ลบข้อมูลผู้ลงทะเบียนเรียบร้อยแล้ว' });
+      } else {
+        return createJsonResponse({ status: 'error', message: 'ไม่พบรายการผู้ลงทะเบียนที่ต้องการลบ' });
+      }
+    }
+
+    // 5. นักศึกษาลงทะเบียนเข้าร่วมกิจกรรม (registerActivity) -> Google Sheets & Google Drive
     var activityTitle = data.activityTitle || (data.data ? data.data.activityTitle : 'กิจกรรมทั่วไป');
     var regInfo = data.data || data;
 

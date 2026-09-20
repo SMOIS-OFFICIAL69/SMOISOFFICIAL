@@ -2862,14 +2862,113 @@
                         <img id="imagePreviewImg" src="" class="img-fluid rounded-3 shadow-lg"
                             style="max-height: 75vh; object-fit: contain; width: auto;" alt="Full Size Image">
                     </div>
-                    <div
-                        class="modal-footer border-0 bg-black bg-opacity-75 p-3 d-flex justify-content-between align-items-center">
+                    <div class="modal-footer border-0 bg-black bg-opacity-75 p-3 d-flex justify-content-between align-items-center">
                         <a id="imagePreviewOpenBtn" href="#" target="_blank" rel="noopener noreferrer"
                             class="btn btn-outline-light btn-sm rounded-pill px-3">
                             <i class="bi bi-box-arrow-up-right me-1"></i> เปิดรูปในแท็บใหม่
                         </a>
                         <button type="button" class="btn btn-danger btn-sm rounded-pill px-4" data-bs-dismiss="modal">
                             <i class="bi bi-x-lg me-1"></i> ปิด
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Activity Registrations Detail Modal -->
+        <div class="modal fade" id="activityRegistrationsModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header border-0 p-3" style="background: var(--kku-gradient); color: #fff;">
+                        <div>
+                            <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-people-fill text-warning fs-4"></i> รายชื่อผู้ลงทะเบียนเข้าร่วมกิจกรรม
+                            </h5>
+                            <div class="text-white-50 small" id="reg-modal-activity-title">-</div>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 bg-white p-3 rounded-4 shadow-sm border">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-danger fs-6 rounded-pill px-3 py-2" id="reg-modal-total-count"><i class="bi bi-person-check-fill me-1"></i> 0 คน</span>
+                                <span class="text-muted small"><i class="bi bi-cloud-check text-success me-1"></i>ข้อมูลเรียลไทม์จากชีท "ข้อมูลการลงทะเบียนกิจกรรม"</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="reg-modal-search" class="form-control form-control-sm rounded-pill px-3" style="width: 240px;" placeholder="ค้นหาชื่อ, รหัสนักศึกษา, สาขา..." oninput="filterModalRegistrationsTable()">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="reloadModalRegistrations()" title="รีเฟรชข้อมูลล่าสุด"><i class="bi bi-arrow-clockwise me-1"></i> รีเฟรช</button>
+                            </div>
+                        </div>
+                        <div id="reg-modal-content-area">
+                            <!-- Content dynamic -->
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 p-3 d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>แสดงข้อมูลผู้สมัครพร้อมคำตอบและข้อมูลสุขภาพจาก Google Sheets</span>
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Edit Registered Applicant Modal -->
+        <div class="modal fade" id="editRegistrationModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header bg-primary text-white p-3">
+                        <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2 m-0">
+                            <i class="bi bi-pencil-square fs-4 text-warning"></i> แก้ไขข้อมูลผู้ลงทะเบียนกิจกรรม
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form id="editRegistrationForm">
+                            <input type="hidden" id="edit-reg-activity-title">
+                            <input type="hidden" id="edit-reg-old-student-id">
+                            <input type="hidden" id="edit-reg-timestamp">
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark">รหัสนักศึกษา <span class="text-danger">*</span></label>
+                                    <input type="text" id="edit-reg-student-id" class="form-control rounded-3" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                                    <input type="text" id="edit-reg-name" class="form-control rounded-3" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark">สาขาวิชา <span class="text-danger">*</span></label>
+                                    <select id="edit-reg-major" class="form-select rounded-3" required></select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold text-dark">ชั้นปี <span class="text-danger">*</span></label>
+                                    <select id="edit-reg-year" class="form-select rounded-3" required>
+                                        <option value="1">ปี 1</option>
+                                        <option value="2">ปี 2</option>
+                                        <option value="3">ปี 3</option>
+                                        <option value="4">ปี 4</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold text-dark">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
+                                    <input type="text" id="edit-reg-phone" class="form-control rounded-3" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold text-dark">ข้อมูลสุขภาพ / แพ้อาหาร / โรคประจำตัว</label>
+                                    <input type="text" id="edit-reg-medical" class="form-control rounded-3" placeholder="ระบุประเภทอาหาร หรือโรคประจำตัว">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold text-dark">คำตอบเพิ่มเติมประจำกิจกรรม</label>
+                                    <textarea id="edit-reg-custom" class="form-control rounded-3" rows="3" placeholder="คำตอบเพิ่มเติม"></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer bg-light border-0 p-3">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="button" id="save-edit-reg-btn" class="btn btn-primary rounded-pill px-4" onclick="saveRegistrationEdit()">
+                            <i class="bi bi-floppy me-1"></i> บันทึกการแก้ไข
                         </button>
                     </div>
                 </div>
@@ -3288,7 +3387,7 @@
         let currentManageOrgId = null;
 
         let registerModal, eventFormModal, newsFormModal, calendarFormModal, userFormModal, newsDetailModal, eventDetailModal, memberDetailModal, imagePreviewModal;
-        let orgFormModal, manageMembersModal, memberFormModal, borrowModal, equipmentFormModal, borrowRequestEditModal;
+        let orgFormModal, manageMembersModal, memberFormModal, borrowModal, equipmentFormModal, borrowRequestEditModal, activityRegistrationsModal, editRegistrationModal;
 
         let isSyncingWithServer = false;
 
@@ -3308,6 +3407,8 @@
             borrowModal = new bootstrap.Modal(document.getElementById('borrowModal'));
             equipmentFormModal = new bootstrap.Modal(document.getElementById('equipmentFormModal'));
             borrowRequestEditModal = new bootstrap.Modal(document.getElementById('borrowRequestEditModal'));
+            activityRegistrationsModal = new bootstrap.Modal(document.getElementById('activityRegistrationsModal'));
+            editRegistrationModal = new bootstrap.Modal(document.getElementById('editRegistrationModal'));
 
             const remoteState = await fetchStateFromServer();
             if (remoteState) {
@@ -4637,22 +4738,386 @@
         }
 
         // --- Stats & Sheet Link ---
+        let currentModalActivityTitle = '';
+        let rawModalRegistrationsData = [];
+
         function renderAdminStats() {
             const tbody = document.getElementById('admin-stats-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
-            activities.forEach(act => {
+            activities.forEach((act, idx) => {
+                const actId = act.id || (idx + 1);
                 const sheetBtn = (SPREADSHEET_URL && SPREADSHEET_URL.trim() !== "")
-                    ? `<a href="${SPREADSHEET_URL}" target="_blank" class="btn btn-sm btn-success text-white btn-pill"><i class="bi bi-table"></i> เปิดตารางข้อมูลชีท</a>`
-                    : `<button class="btn btn-sm btn-secondary btn-pill" onclick="alert('กรุณากรอกลิงก์สเปรดชีตของคุณก่อน')"><i class="bi bi-exclamation-triangle"></i> ยังไม่ได้ระบุลิงก์ตาราง</button>`;
+                    ? `<a href="${SPREADSHEET_URL}" target="_blank" class="btn btn-sm btn-success text-white btn-pill ms-1"><i class="bi bi-table"></i> เปิดชีท</a>`
+                    : `<button class="btn btn-sm btn-secondary btn-pill ms-1" onclick="alert('กรุณากรอกลิงก์สเปรดชีตของคุณก่อน')"><i class="bi bi-exclamation-triangle"></i> ยังไม่ได้ระบุลิงก์ตาราง</button>`;
 
                 tbody.innerHTML += `
-                    <tr>
-                        <td class="fw-medium">${act.title}</td>
-                        <td class="text-center"><span class="badge bg-danger fs-6">${act.applicants} คน</span></td>
-                        <td class="text-center">${sheetBtn}</td>
+                    <tr style="cursor: pointer;" onclick="openActivityRegistrationsModalById(${actId})">
+                        <td class="fw-medium">
+                            <div class="fw-bold text-dark">${act.title}</div>
+                            <small class="text-primary"><i class="bi bi-eye-fill me-1"></i>กดเพื่อดูรายชื่อผู้สมัคร (${act.applicants || 0} คน)</small>
+                        </td>
+                        <td class="text-center align-middle">
+                            <button type="button" class="btn btn-sm btn-danger btn-pill fw-bold" onclick="event.stopPropagation(); openActivityRegistrationsModalById(${actId})">
+                                <i class="bi bi-people-fill me-1"></i> ${act.applicants || 0} คน
+                            </button>
+                        </td>
+                        <td class="text-center align-middle" onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openActivityRegistrationsModalById(${actId})">
+                                <i class="bi bi-person-lines-fill me-1"></i> ดูรายชื่อผู้สมัคร
+                            </button>
+                            ${sheetBtn}
+                        </td>
                     </tr>
                 `;
             });
+        }
+
+        function openActivityRegistrationsModalById(actId) {
+            const act = activities.find(a => a.id == actId);
+            const title = act ? act.title : '';
+            openActivityRegistrationsModal(title);
+        }
+
+        async function openActivityRegistrationsModal(activityTitle) {
+            currentModalActivityTitle = activityTitle || '';
+            const modalTitleEl = document.getElementById('reg-modal-activity-title');
+            const contentArea = document.getElementById('reg-modal-content-area');
+            const totalCountBadge = document.getElementById('reg-modal-total-count');
+            const searchInput = document.getElementById('reg-modal-search');
+
+            if (modalTitleEl) modalTitleEl.innerText = activityTitle || 'กิจกรรมทั้งหมด';
+            if (searchInput) searchInput.value = '';
+
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <h6 class="fw-bold text-secondary">กำลังโหลดข้อมูลผู้ลงทะเบียนจาก Google Sheets...</h6>
+                        <small class="text-muted">กรุณารอสักครู่</small>
+                    </div>
+                `;
+            }
+            if (totalCountBadge) totalCountBadge.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> กำลังโหลด...`;
+
+            if (!activityRegistrationsModal) {
+                const el = document.getElementById('activityRegistrationsModal');
+                if (el && typeof bootstrap !== 'undefined') {
+                    activityRegistrationsModal = new bootstrap.Modal(el);
+                }
+            }
+
+            if (activityRegistrationsModal) {
+                activityRegistrationsModal.show();
+            } else {
+                const el = document.getElementById('activityRegistrationsModal');
+                if (el) {
+                    el.classList.add('show');
+                    el.style.display = 'block';
+                }
+            }
+            await fetchRegistrationsData(activityTitle);
+        }
+
+        async function reloadModalRegistrations() {
+            if (currentModalActivityTitle) {
+                await openActivityRegistrationsModal(currentModalActivityTitle);
+            }
+        }
+
+        async function fetchRegistrationsData(activityTitle) {
+            const contentArea = document.getElementById('reg-modal-content-area');
+            const totalCountBadge = document.getElementById('reg-modal-total-count');
+
+            try {
+                if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
+                    throw new Error("ยังไม่ได้กำหนด URL ของ Google Apps Script (SCRIPT_URL)");
+                }
+
+                const fetchUrl = `${SCRIPT_URL}?action=getActivityRegistrations&activityTitle=${encodeURIComponent(activityTitle)}`;
+                const res = await fetch(fetchUrl);
+                const result = await res.json();
+
+                if (result && result.status === 'success' && Array.isArray(result.registrations)) {
+                    rawModalRegistrationsData = result.registrations;
+                    renderModalRegistrationsTable(rawModalRegistrationsData);
+                } else {
+                    throw new Error((result && result.message) || "ไม่สามารถดึงข้อมูลผู้ลงทะเบียนได้");
+                }
+            } catch (err) {
+                console.error("Error fetching registrations:", err);
+                if (contentArea) {
+                    contentArea.innerHTML = `
+                        <div class="alert alert-danger rounded-4 p-4 text-center my-3 shadow-sm border-0">
+                            <i class="bi bi-exclamation-triangle-fill fs-2 d-block mb-2"></i>
+                            <h6 class="fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</h6>
+                            <p class="small text-muted mb-3">${err.message || 'โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ Apps Script Deployment'}</p>
+                            <button class="btn btn-sm btn-danger rounded-pill px-4" onclick="reloadModalRegistrations()">
+                                <i class="bi bi-arrow-clockwise me-1"></i> ลองใหม่อีกครั้ง
+                            </button>
+                        </div>
+                    `;
+                }
+                if (totalCountBadge) totalCountBadge.innerText = '0 คน';
+            }
+        }
+
+        function filterModalRegistrationsTable() {
+            const searchEl = document.getElementById('reg-modal-search');
+            const query = (searchEl ? searchEl.value : '').toLowerCase().trim();
+            if (!query) {
+                renderModalRegistrationsTable(rawModalRegistrationsData);
+                return;
+            }
+
+            const filtered = rawModalRegistrationsData.filter(item => {
+                const name = (item.name || '').toLowerCase();
+                const studentId = (item.studentId || '').toLowerCase();
+                const major = (item.major || '').toLowerCase();
+                const phone = (item.phone || '').toLowerCase();
+                return name.includes(query) || studentId.includes(query) || major.includes(query) || phone.includes(query);
+            });
+
+            renderModalRegistrationsTable(filtered);
+        }
+
+        function renderModalRegistrationsTable(list) {
+            const contentArea = document.getElementById('reg-modal-content-area');
+            const totalCountBadge = document.getElementById('reg-modal-total-count');
+
+            if (totalCountBadge) {
+                totalCountBadge.innerHTML = `<i class="bi bi-person-check-fill me-1"></i> ${list.length} คน`;
+            }
+
+            if (!contentArea) return;
+
+            if (!list || list.length === 0) {
+                contentArea.innerHTML = `
+                    <div class="text-center py-5 bg-white rounded-4 border shadow-sm my-2">
+                        <i class="bi bi-inbox text-muted fs-1 d-block mb-2"></i>
+                        <h6 class="fw-bold text-secondary">ยังไม่มีข้อมูลผู้ลงทะเบียนในกิจกรรมนี้</h6>
+                        <small class="text-muted">เมื่อมีนักศึกษาลงทะเบียน ข้อมูลจะแสดงที่นี่โดยอัตโนมัติ</small>
+                    </div>
+                `;
+                return;
+            }
+
+            let rowsHtml = '';
+            list.forEach((reg, displayIdx) => {
+                const realIndex = rawModalRegistrationsData.indexOf(reg);
+                const medHtml = (reg.medical && reg.medical !== '-') 
+                    ? `<span class="badge bg-warning text-dark text-wrap text-start font-monospace small"><i class="bi bi-heart-pulse-fill me-1 text-danger"></i>${reg.medical}</span>`
+                    : `<span class="text-muted small">-</span>`;
+
+                const answersHtml = (reg.customAnswers && reg.customAnswers !== '-')
+                    ? `<div class="small text-secondary font-monospace bg-light p-2 rounded border" style="max-width: 320px; word-break: break-word;">${reg.customAnswers}</div>`
+                    : `<span class="text-muted small">-</span>`;
+
+                rowsHtml += `
+                    <tr>
+                        <td class="text-center fw-bold text-secondary align-middle">${displayIdx + 1}</td>
+                        <td class="align-middle">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 font-monospace fw-bold">${reg.studentId || '-'}</span>
+                        </td>
+                        <td class="align-middle">
+                            <div class="fw-bold text-dark">${reg.name || '-'}</div>
+                            <small class="text-muted"><i class="bi bi-telephone-fill me-1"></i>${reg.phone || '-'}</small>
+                        </td>
+                        <td class="align-middle">
+                            <div class="fw-medium text-dark">${reg.major || '-'}</div>
+                            <span class="badge bg-secondary-subtle text-secondary border px-2 py-0">${reg.year || '-'}</span>
+                        </td>
+                        <td class="align-middle">${medHtml}</td>
+                        <td class="align-middle">${answersHtml}</td>
+                        <td class="align-middle text-muted small text-nowrap">${reg.timestamp || '-'}</td>
+                        <td class="align-middle text-center text-nowrap">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 me-1" onclick="openEditRegistrationModal(${realIndex})" title="แก้ไขข้อมูล">
+                                <i class="bi bi-pencil-square me-1"></i> แก้ไข
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" onclick="deleteRegistrationRecord(${realIndex})" title="ลบข้อมูล">
+                                <i class="bi bi-trash me-1"></i> ลบ
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            contentArea.innerHTML = `
+                <div class="table-responsive bg-white rounded-4 shadow-sm border">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 50px;">#</th>
+                                <th>รหัสนักศึกษา</th>
+                                <th>ชื่อ-นามสกุล / เบอร์โทร</th>
+                                <th>สาขาวิชา / ชั้นปี</th>
+                                <th>ข้อมูลสุขภาพ/อาหาร</th>
+                                <th>คำตอบเพิ่มเติม</th>
+                                <th>เวลาที่ลงทะเบียน</th>
+                                <th class="text-center" style="width: 130px;">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function openEditRegistrationModal(index) {
+            const reg = rawModalRegistrationsData[index];
+            if (!reg) return;
+
+            document.getElementById('edit-reg-activity-title').value = reg.activityTitle || currentModalActivityTitle;
+            document.getElementById('edit-reg-old-student-id').value = reg.studentId || '';
+            document.getElementById('edit-reg-timestamp').value = reg.timestamp || '';
+
+            document.getElementById('edit-reg-student-id').value = reg.studentId || '';
+            document.getElementById('edit-reg-name').value = reg.name || '';
+            
+            const majorSelect = document.getElementById('edit-reg-major');
+            majorSelect.innerHTML = majors.map(m => `<option value="${m}" ${m === reg.major ? 'selected' : ''}>${m}</option>`).join('');
+
+            const yearVal = (reg.year || '').replace(/[^0-9]/g, '') || '1';
+            document.getElementById('edit-reg-year').value = yearVal;
+
+            document.getElementById('edit-reg-phone').value = reg.phone || '';
+            document.getElementById('edit-reg-medical').value = reg.medical === '-' ? '' : (reg.medical || '');
+            document.getElementById('edit-reg-custom').value = reg.customAnswers === '-' ? '' : (reg.customAnswers || '');
+
+            if (!editRegistrationModal) {
+                const modalEl = document.getElementById('editRegistrationModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    editRegistrationModal = new bootstrap.Modal(modalEl);
+                }
+            }
+
+            if (editRegistrationModal) {
+                editRegistrationModal.show();
+            }
+        }
+
+        async function saveRegistrationEdit() {
+            const activityTitle = document.getElementById('edit-reg-activity-title').value;
+            const oldStudentId = document.getElementById('edit-reg-old-student-id').value;
+            const timestamp = document.getElementById('edit-reg-timestamp').value;
+
+            const studentId = document.getElementById('edit-reg-student-id').value.trim();
+            const name = document.getElementById('edit-reg-name').value.trim();
+            const major = document.getElementById('edit-reg-major').value;
+            const year = document.getElementById('edit-reg-year').value;
+            const phone = document.getElementById('edit-reg-phone').value.trim();
+            const medical = document.getElementById('edit-reg-medical').value.trim() || '-';
+            const customAnswers = document.getElementById('edit-reg-custom').value.trim() || '-';
+
+            if (!studentId || !name || !phone) {
+                alert('กรุณากรอกรหัสนักศึกษา, ชื่อ-นามสกุล และเบอร์โทรศัพท์ให้ครบถ้วน');
+                return;
+            }
+
+            const btn = document.getElementById('save-edit-reg-btn');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>กำลังบันทึก...';
+            btn.disabled = true;
+
+            const updateData = {
+                action: 'updateRegistration',
+                activityTitle: activityTitle,
+                oldStudentId: oldStudentId,
+                timestamp: timestamp,
+                studentId: studentId,
+                name: name,
+                major: major,
+                year: year,
+                phone: phone,
+                medical: medical,
+                customAnswers: customAnswers
+            };
+
+            try {
+                if (SCRIPT_URL && SCRIPT_URL.trim() !== "") {
+                    const res = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(updateData)
+                    });
+                    const resJson = await res.json();
+                    if (resJson.status === 'error') {
+                        throw new Error(resJson.message);
+                    }
+                }
+
+                // Update local memory data
+                const targetRecord = rawModalRegistrationsData.find(r => r.timestamp === timestamp || r.studentId === oldStudentId);
+                if (targetRecord) {
+                    targetRecord.studentId = studentId;
+                    targetRecord.name = name;
+                    targetRecord.major = major;
+                    targetRecord.year = year.includes('ปี') ? year : 'ปี ' + year;
+                    targetRecord.phone = phone;
+                    targetRecord.medical = medical;
+                    targetRecord.customAnswers = customAnswers;
+                }
+
+                renderModalRegistrationsTable(rawModalRegistrationsData);
+
+                if (editRegistrationModal) {
+                    editRegistrationModal.hide();
+                }
+
+                alert('🎉 แก้ไขข้อมูลผู้ลงทะเบียนสำเร็จเรียบร้อยแล้ว');
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteRegistrationRecord(index) {
+            const reg = rawModalRegistrationsData[index];
+            if (!reg) return;
+
+            if (!confirm(`คุณต้องการลบข้อมูลผู้ลงทะเบียน "${reg.name}" (${reg.studentId}) ออกจากระบบใช่หรือไม่?`)) {
+                return;
+            }
+
+            const deleteData = {
+                action: 'deleteRegistration',
+                activityTitle: reg.activityTitle || currentModalActivityTitle,
+                studentId: reg.studentId,
+                timestamp: reg.timestamp
+            };
+
+            try {
+                if (SCRIPT_URL && SCRIPT_URL.trim() !== "") {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(deleteData)
+                    });
+                }
+
+                // Remove from local memory data
+                rawModalRegistrationsData.splice(index, 1);
+
+                // Update activity applicants count in activities list
+                const act = activities.find(a => a.title.trim().toLowerCase() === (reg.activityTitle || currentModalActivityTitle).trim().toLowerCase());
+                if (act && act.applicants > 0) {
+                    act.applicants = parseInt(act.applicants) - 1;
+                    saveAllToLocalStorage();
+                    renderAdminStats();
+                    renderActivities();
+                }
+
+                renderModalRegistrationsTable(rawModalRegistrationsData);
+                alert(`ลบข้อมูลผู้ลงทะเบียน "${reg.name}" เรียบร้อยแล้ว`);
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการลบข้อมูล: ' + err.message);
+            }
         }
 
         // --- User Admin ---
