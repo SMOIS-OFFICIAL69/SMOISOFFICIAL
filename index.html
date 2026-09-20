@@ -3442,7 +3442,19 @@
             }
         }
 
+        function cleanNullsFromState() {
+            if (Array.isArray(organizations)) {
+                organizations = organizations.filter(Boolean);
+                organizations.forEach(org => {
+                    if (org && Array.isArray(org.members)) {
+                        org.members = org.members.filter(Boolean);
+                    }
+                });
+            }
+        }
+
         function cacheDataLocally() {
+            cleanNullsFromState();
             localStorage.setItem('kku_majors', JSON.stringify(majors));
             localStorage.setItem('kku_activities', JSON.stringify(activities));
             localStorage.setItem('kku_news', JSON.stringify(newsList));
@@ -3474,6 +3486,7 @@
 
         function pushStateToServer() {
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") return;
+            cleanNullsFromState();
             const state = { majors, activities, newsList, calendarEvents, adminUsers, organizations, equipmentList, borrowRequests };
             fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -3496,6 +3509,7 @@
                     organizations = remoteState.organizations || organizations;
                     equipmentList = remoteState.equipmentList || equipmentList;
                     borrowRequests = remoteState.borrowRequests || borrowRequests;
+                    cleanNullsFromState();
                     cacheDataLocally();
                     renderActivities();
                     renderNews();
@@ -4484,7 +4498,7 @@
                 };
                 activities.unshift(newAct);
             } else {
-                const actIndex = activities.findIndex(a => a.id === parseInt(id));
+                const actIndex = activities.findIndex(a => a.id == id);
                 if (actIndex !== -1) {
                     activities[actIndex].title = title;
                     activities[actIndex].image = img;
@@ -4508,7 +4522,7 @@
 
         function deleteActivity(id) {
             if (confirm(`ยืนยันการลบกิจกรรมนี้ออกจากระบบใช่หรือไม่?`)) {
-                activities = activities.filter(a => a.id !== id);
+                activities = activities.filter(a => a.id != id);
                 saveAllToLocalStorage();
                 renderActivities();
                 renderAdminActivityTable();
@@ -4869,14 +4883,16 @@
             if (!tbody) return;
             tbody.innerHTML = '';
             const org = organizations.find(o => o.id == currentManageOrgId);
-            if (!org || !org.members || org.members.length === 0) {
+            const validMembers = (org && org.members) ? org.members.filter(Boolean) : [];
+            if (!org || validMembers.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีรายชื่อสมาชิกในองค์กรนี้</td></tr>`;
                 return;
             }
 
-            org.members.forEach((m, idx) => {
+            validMembers.forEach((m, idx) => {
+                if (!m) return;
                 const isFirst = idx === 0;
-                const isLast = idx === org.members.length - 1;
+                const isLast = idx === validMembers.length - 1;
                 const safeImg = formatImageUrl(m.image || '');
 
                 tbody.innerHTML += `
@@ -5066,14 +5082,15 @@
             let totalMembersFound = 0;
 
             filteredOrgs.forEach(org => {
-                let matchingMembers = org.members || [];
+                if (!org) return;
+                let matchingMembers = (org.members || []).filter(Boolean);
                 if (query !== '') {
-                    matchingMembers = (org.members || []).filter(m =>
+                    matchingMembers = matchingMembers.filter(m => m && (
                         (m.fullname && m.fullname.toLowerCase().includes(query)) ||
                         (m.nickname && m.nickname.toLowerCase().includes(query)) ||
                         (m.position && m.position.toLowerCase().includes(query)) ||
                         (org.name && org.name.toLowerCase().includes(query))
-                    );
+                    ));
                 }
 
                 if (query !== '' && matchingMembers.length === 0) {
@@ -5087,6 +5104,7 @@
                     membersHTML = `<div class="col-12 text-center text-muted small py-3">ยังไม่มีข้อมูลสมาชิกในองค์กรนี้</div>`;
                 } else {
                     membersHTML = matchingMembers.map(m => {
+                        if (!m) return '';
                         const safeFullname = (m.fullname || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         const safeImg = formatImageUrl(m.image || '');
                         const displayImg = safeImg || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80';
@@ -5846,7 +5864,7 @@
             }
 
             if (idVal) {
-                const equip = equipmentList.find(e => e.id === parseInt(idVal));
+                const equip = equipmentList.find(e => e.id == idVal);
                 if (equip) {
                     equip.name = name;
                     equip.category = category;
@@ -5877,7 +5895,7 @@
 
         function deleteEquipment(id) {
             if (!confirm('คุณแน่ใจหรือไม่ที่จะลบรายการอุปกรณ์นี้ออก?')) return;
-            equipmentList = equipmentList.filter(e => e.id !== id);
+            equipmentList = equipmentList.filter(e => e.id != id);
             saveAllToLocalStorage();
             renderPublicEquipment();
             renderAdminEquipmentTable();

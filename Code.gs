@@ -25,11 +25,11 @@ function doGet(e) {
     // 1.1 ดึงข้อมูลนักศึกษาจากรหัสนักศึกษา (getStudent)
     if (action === 'getStudent') {
       var searchId = (params.studentId || '').replace(/[^0-9]/g, '');
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var ss = getSpreadsheet();
       var found = null;
 
       // 1. ค้นหาจากชีท "ฐานข้อมูลนักศึกษา" ก่อน
-      var dbSheet = ss.getSheetByName("ฐานข้อมูลนักศึกษา");
+      var dbSheet = ss ? ss.getSheetByName("ฐานข้อมูลนักศึกษา") : null;
       if (dbSheet && searchId) {
         var lastRowDb = dbSheet.getLastRow();
         if (lastRowDb > 1) {
@@ -53,7 +53,7 @@ function doGet(e) {
       }
 
       // 2. ถ้าไม่พบ ให้ค้นหาจากชีท "ข้อมูลการลงทะเบียนกิจกรรม"
-      if (!found) {
+      if (!found && ss) {
         var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
         if (regSheet && searchId) {
           var lastRow = regSheet.getLastRow();
@@ -79,7 +79,7 @@ function doGet(e) {
       }
 
       // 3. ถ้ายังไม่พบ ให้ค้นหาจากชีท "คำร้องขอยืมอุปกรณ์"
-      if (!found) {
+      if (!found && ss) {
         var bSheet = ss.getSheetByName("คำร้องขอยืมอุปกรณ์");
         if (bSheet && searchId) {
           var lastRowB = bSheet.getLastRow();
@@ -123,19 +123,21 @@ function doGet(e) {
     }
 
     // 2. หน้าเว็บขอซิงค์สถิติจำนวนผู้สมัครจริงจากชีทลงทะเบียนกิจกรรม (syncApplicantsFromGoogleSheets)
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
     var stats = {};
-    var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
-    if (regSheet) {
-      var lastRow = regSheet.getLastRow();
-      if (lastRow > 1) {
-        var data = regSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-        data.forEach(function(row) {
-          var title = (row[0] || '').toString().trim();
-          if (title) {
-            stats[title] = (stats[title] || 0) + 1;
-          }
-        });
+    if (ss) {
+      var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
+      if (regSheet) {
+        var lastRow = regSheet.getLastRow();
+        if (lastRow > 1) {
+          var data = regSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+          data.forEach(function(row) {
+            var title = (row[0] || '').toString().trim();
+            if (title) {
+              stats[title] = (stats[title] || 0) + 1;
+            }
+          });
+        }
       }
     }
 
@@ -181,7 +183,7 @@ function doPost(e) {
     // 2. คำร้องขอยืมอุปกรณ์สโมสรฯ (borrowRequest) -> Google Sheets & Google Drive
     if (data.action === 'borrowRequest' && data.request) {
       var req = data.request;
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var ss = getSpreadsheet();
       var sheetName = "คำร้องขอยืมอุปกรณ์";
       var sheet = getOrCreateSheet(ss, sheetName);
 
@@ -227,7 +229,7 @@ function doPost(e) {
     var activityTitle = data.activityTitle || (data.data ? data.data.activityTitle : 'กิจกรรมทั่วไป');
     var regInfo = data.data || data;
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
     var regSheetName = "ข้อมูลการลงทะเบียนกิจกรรม";
     var sheet = getOrCreateSheet(ss, regSheetName);
 
@@ -296,7 +298,8 @@ function doPost(e) {
  */
 function saveAllStateToSheets(state) {
   if (!state) return;
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
+  if (!ss) return;
 
   // 1. ชีทสรุปสถิติระบบ (Overview Dashboard Sheet)
   var summarySheet = getOrCreateSheet(ss, "สถิติระบบ");
@@ -621,7 +624,26 @@ function saveBorrowRequestToDrive(req) {
  * ฟังก์ชันผู้ช่วยสร้าง/ดึงแผ่นชีท และตกแต่ง Header สวยงาม
  * ==============================================================================
  */
+function getSpreadsheet() {
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {}
+
+  if (!ss) {
+    var targetId = "13PkrBncnM9jSBSifhp4Q0lyvULqPxGr0kxmumHWUKdA";
+    try {
+      ss = SpreadsheetApp.openById(targetId);
+    } catch (e) {
+      Logger.log("ไม่สามารถเปิด Google Sheet ด้วย ID ได้: " + e.toString());
+    }
+  }
+  return ss;
+}
+
 function getOrCreateSheet(ss, name) {
+  if (!ss) ss = getSpreadsheet();
+  if (!ss) return null;
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
