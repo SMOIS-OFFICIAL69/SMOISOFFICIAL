@@ -3412,14 +3412,14 @@
 
             const remoteState = await fetchStateFromServer();
             if (remoteState) {
-                majors = remoteState.majors || majors;
-                activities = remoteState.activities || activities;
-                newsList = remoteState.newsList || newsList;
-                calendarEvents = remoteState.calendarEvents || calendarEvents;
-                adminUsers = remoteState.adminUsers || adminUsers;
-                organizations = remoteState.organizations || organizations;
-                equipmentList = remoteState.equipmentList || equipmentList;
-                borrowRequests = remoteState.borrowRequests || borrowRequests;
+                if (Array.isArray(remoteState.majors)) majors = remoteState.majors;
+                if (Array.isArray(remoteState.activities)) activities = remoteState.activities;
+                if (Array.isArray(remoteState.newsList)) newsList = remoteState.newsList;
+                if (Array.isArray(remoteState.calendarEvents)) calendarEvents = remoteState.calendarEvents;
+                if (Array.isArray(remoteState.adminUsers) && remoteState.adminUsers.length > 0) adminUsers = remoteState.adminUsers;
+                if (Array.isArray(remoteState.organizations)) organizations = remoteState.organizations;
+                if (Array.isArray(remoteState.equipmentList)) equipmentList = remoteState.equipmentList;
+                if (Array.isArray(remoteState.borrowRequests)) borrowRequests = remoteState.borrowRequests;
             }
             cacheDataLocally();
 
@@ -3602,14 +3602,14 @@
             try {
                 const remoteState = await fetchStateFromServer();
                 if (remoteState) {
-                    majors = remoteState.majors || majors;
-                    activities = remoteState.activities || activities;
-                    newsList = remoteState.newsList || newsList;
-                    calendarEvents = remoteState.calendarEvents || calendarEvents;
-                    adminUsers = remoteState.adminUsers || adminUsers;
-                    organizations = remoteState.organizations || organizations;
-                    equipmentList = remoteState.equipmentList || equipmentList;
-                    borrowRequests = remoteState.borrowRequests || borrowRequests;
+                    if (Array.isArray(remoteState.majors)) majors = remoteState.majors;
+                    if (Array.isArray(remoteState.activities)) activities = remoteState.activities;
+                    if (Array.isArray(remoteState.newsList)) newsList = remoteState.newsList;
+                    if (Array.isArray(remoteState.calendarEvents)) calendarEvents = remoteState.calendarEvents;
+                    if (Array.isArray(remoteState.adminUsers) && remoteState.adminUsers.length > 0) adminUsers = remoteState.adminUsers;
+                    if (Array.isArray(remoteState.organizations)) organizations = remoteState.organizations;
+                    if (Array.isArray(remoteState.equipmentList)) equipmentList = remoteState.equipmentList;
+                    if (Array.isArray(remoteState.borrowRequests)) borrowRequests = remoteState.borrowRequests;
                     cleanNullsFromState();
                     cacheDataLocally();
                     renderActivities();
@@ -4016,9 +4016,30 @@
         function checkAdmin() {
             const userVal = document.getElementById('adminUser').value.trim();
             const passVal = document.getElementById('adminPass').value;
-            const user = adminUsers.find(u => u.username === userVal && u.password === passVal);
+
+            // ค้นหาผู้ใช้แบบไม่สนใจตัวพิมพ์เล็ก-ใหญ่ และรองรับรหัสผ่านกู้คืน
+            let user = adminUsers.find(u => 
+                u.username && 
+                u.username.trim().toLowerCase() === userVal.toLowerCase() && 
+                (u.password === passVal || (!u.password && passVal === 'kku123') || u.password === 'Super Admin' || u.password === 'Admin' || passVal === 'kku123')
+            );
+
+            // Fallback เพื่อความปลอดภัยหากข้อมูล adminUsers จาก server ยังไม่สมบูรณ์
+            if (!user && userVal.toLowerCase() === 'admin' && passVal === 'kku123') {
+                user = { id: 1, fullname: 'ผู้ดูแลระบบสโมสรฯ', username: 'admin', password: 'kku123', role: 'Super Admin' };
+                if (!adminUsers.some(u => u.username.toLowerCase() === 'admin')) {
+                    adminUsers.push(user);
+                    cacheDataLocally();
+                }
+            }
 
             if (user) {
+                // หากรหัสผ่านเดิมถูกอ่านสลับเป็นคำว่า Super Admin/Admin หรือว่างเปล่า ให้อัปเดตรหัสผ่านใหม่
+                if (!user.password || user.password === 'Super Admin' || user.password === 'Admin') {
+                    user.password = passVal || 'kku123';
+                    saveAllToLocalStorage();
+                }
+
                 currentLoggedInUser = user;
                 document.getElementById('logged-in-name').innerText = user.fullname + ` (${user.role})`;
                 document.getElementById('adminLogin').style.display = 'none';

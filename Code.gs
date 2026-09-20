@@ -106,15 +106,15 @@ function doGet(e) {
       return createJsonResponse({ status: 'success', student: found });
     }
 
-    // 1.2 หน้าเว็บขอข้อมูลงบกลาง/สถานะระบบ (getState)
+    // 1.2 หน้าเว็บขอข้อมูลสถานะระบบ (getState) -> อ่านจาก Google Sheets ก่อนเป็นอันดับแรกเพื่อให้การแก้ไข/ลบในชีทแสดงผลหน้าระบบทันที
     if (action === 'getState') {
-      var state = getStateFromProperties();
+      var ss = getSpreadsheet();
+      var state = ss ? getStateFromSheets(ss) : null;
       if (!state) {
-        state = getStateFromDriveBackup();
+        state = getStateFromProperties();
       }
       if (!state) {
-        var ss = getSpreadsheet();
-        state = getStateFromSheets(ss);
+        state = getStateFromDriveBackup();
       }
       return createJsonResponse({ status: 'success', state: state });
     }
@@ -430,10 +430,55 @@ function saveAllStateToSheets(state) {
   // 2. ชีทรายการกิจกรรม (Activities)
   var actSheet = getOrCreateSheet(ss, "รายการกิจกรรม");
   actSheet.clear();
-  createSheetHeader(actSheet, ["ID", "ชื่อกิจกรรม", "หมวดหมู่", "วันที่จัดงาน", "สถานที่", "กำหนดปิดรับ", "สถานะ", "ผู้สมัคร (คน)", "เก็บข้อมูลสุขภาพ"]);
+  createSheetHeader(actSheet, [
+    "ID", "ชื่อกิจกรรม", "หมวดหมู่", "รูปภาพแบนเนอร์ URL", "วันที่จัดงาน", "สถานที่", 
+    "กำหนดปิดรับ", "สถานะ", "ผู้สมัคร (คน)", "เก็บข้อมูลสุขภาพ", "รายละเอียดกิจกรรม", "ส่วนเพิ่มเติม (Custom Sections JSON)"
+  ]);
+
+  var customSecSheet = getOrCreateSheet(ss, "โครงสร้างฟอร์มเพิ่มเติม");
+  customSecSheet.clear();
+  createSheetHeader(customSecSheet, [
+    "ID กิจกรรม", "ชื่อกิจกรรม", "ชื่อส่วนเพิ่มเติม (Section Title)", "ข้อคำถาม (Question Label)", "ประเภทข้อคำถาม (Type)", "ตัวเลือก (Options)", "จำเป็นต้องตอบ (Required)"
+  ]);
+
   if (state.activities && state.activities.length > 0) {
     state.activities.forEach(function(a) {
-      actSheet.appendRow([a.id, a.title, a.category, a.date, a.location, a.deadline, a.status, a.applicants || 0, a.collectMedical ? 'เก็บ' : 'ไม่เก็บ']);
+      var customSecs = a.customSections || (a.customQuestions ? [{ id: 'sec_1', title: 'ส่วนเพิ่มเติม', questions: a.customQuestions }] : []);
+      var customJsonStr = (customSecs && customSecs.length > 0) ? JSON.stringify(customSecs) : '';
+
+      actSheet.appendRow([
+        a.id, 
+        a.title, 
+        a.category, 
+        a.image || '', 
+        a.date, 
+        a.location, 
+        a.deadline, 
+        a.status, 
+        a.applicants || 0, 
+        a.collectMedical ? 'เก็บ' : 'ไม่เก็บ', 
+        a.description || '', 
+        customJsonStr
+      ]);
+
+      if (customSecs && customSecs.length > 0) {
+        customSecs.forEach(function(sec) {
+          if (sec.questions && sec.questions.length > 0) {
+            sec.questions.forEach(function(q) {
+              var optsStr = Array.isArray(q.options) ? q.options.join(', ') : (q.options || '');
+              customSecSheet.appendRow([
+                a.id,
+                a.title,
+                sec.title || 'ส่วนเพิ่มเติม',
+                q.label || '',
+                q.type || 'text',
+                optsStr,
+                q.required ? 'ใช่' : 'ไม่'
+              ]);
+            });
+          }
+        });
+      }
     });
   }
 
@@ -497,10 +542,10 @@ function saveAllStateToSheets(state) {
   // 8. ชีทผู้ดูแลระบบ (Admin Users)
   var uSheet = getOrCreateSheet(ss, "ผู้ดูแลระบบ");
   uSheet.clear();
-  createSheetHeader(uSheet, ["ID", "ชื่อ-นามสกุล", "Username", "บทบาท (Role)"]);
+  createSheetHeader(uSheet, ["ID", "ชื่อ-นามสกุล", "Username", "Password", "บทบาท (Role)"]);
   if (state.adminUsers && state.adminUsers.length > 0) {
     state.adminUsers.forEach(function(u) {
-      uSheet.appendRow([u.id, u.fullname, u.username, u.role]);
+      uSheet.appendRow([u.id, u.fullname, u.username, u.password || 'kku123', u.role]);
     });
   }
 
@@ -714,19 +759,108 @@ function getStateFromSheets(ss) {
     // 1. อ่านรายการกิจกรรม
     var actSheet = ss.getSheetByName("รายการกิจกรรม");
     if (actSheet && actSheet.getLastRow() > 1) {
-      var actVals = actSheet.getRange(2, 1, actSheet.getLastRow() - 1, 9).getValues();
+      var actNumCols = actSheet.getLastColumn();
+      var actVals = actSheet.getRange(2, 1, actSheet.getLastRow() - 1, Math.max(actNumCols, 12)).getValues();
+
+      // อ่านชีทโครงสร้างฟอร์มเพิ่มเติม (ถ้ามี)
+      var customSecMap = {};
+      var csSheet = ss.getSheetByName("โครงสร้างฟอร์มเพิ่มเติม");
+      if (csSheet && csSheet.getLastRow() > 1) {
+        var csVals = csSheet.getRange(2, 1, csSheet.getLastRow() - 1, 7).getValues();
+        csVals.forEach(function(csRow) {
+          var actIdKey = csRow[0] ? csRow[0].toString() : '';
+          var actTitleKey = csRow[1] ? csRow[1].toString().trim() : '';
+          var secTitle = csRow[2] ? csRow[2].toString().trim() : 'ส่วนเพิ่มเติม';
+          var qLabel = csRow[3] ? csRow[3].toString().trim() : '';
+          var qType = csRow[4] ? csRow[4].toString().trim() : 'text';
+          var qOptsRaw = csRow[5] ? csRow[5].toString() : '';
+          var qReq = (csRow[6] === 'ใช่' || csRow[6] === true || csRow[6] === 'true');
+
+          if (qLabel && (actIdKey || actTitleKey)) {
+            var key = actIdKey || actTitleKey;
+            if (!customSecMap[key]) customSecMap[key] = {};
+            if (!customSecMap[key][secTitle]) customSecMap[key][secTitle] = [];
+
+            var optsArr = qOptsRaw ? qOptsRaw.split(',').map(function(s){ return s.trim(); }) : [];
+            customSecMap[key][secTitle].push({
+              id: 'q_' + Date.now() + Math.floor(Math.random() * 1000),
+              label: qLabel,
+              type: qType,
+              options: optsArr,
+              required: qReq
+            });
+          }
+        });
+      }
+
       actVals.forEach(function(row) {
         if (row[1]) {
+          var actId = row[0] || Date.now();
+          var actTitle = row[1];
+          var actImg = '';
+          var actCat = 'กิจกรรม';
+          var actDate = '';
+          var actLoc = '';
+          var actDeadline = '';
+          var actStatus = 'เปิดรับสมัคร';
+          var actApplicants = 0;
+          var actCollectMed = false;
+          var actDesc = '';
+          var parsedCustomSections = [];
+
+          if (actNumCols >= 12) {
+            // โครงสร้างใหม่ 12 คอลัมน์
+            actCat = row[2] || 'กิจกรรม';
+            actImg = row[3] || '';
+            actDate = row[4] || '';
+            actLoc = row[5] || '';
+            actDeadline = row[6] || '';
+            actStatus = row[7] || 'เปิดรับสมัคร';
+            actApplicants = parseInt(row[8]) || 0;
+            actCollectMed = (row[9] === 'เก็บ' || row[9] === true);
+            actDesc = row[10] || '';
+            if (row[11]) {
+              try {
+                parsedCustomSections = JSON.parse(row[11]);
+              } catch(e) {}
+            }
+          } else {
+            // โครงสร้างเดิม 9 คอลัมน์ (Backward compatibility)
+            actCat = row[2] || 'กิจกรรม';
+            actDate = row[3] || '';
+            actLoc = row[4] || '';
+            actDeadline = row[5] || '';
+            actStatus = row[6] || 'เปิดรับสมัคร';
+            actApplicants = parseInt(row[7]) || 0;
+            actCollectMed = (row[8] === 'เก็บ' || row[8] === true);
+          }
+
+          // ถ้าไม่มี customSections จาก JSON แต่มีข้อมูลในชีทโครงสร้างฟอร์มเพิ่มเติม ให้ประกอบสร้างกลับมา
+          if ((!parsedCustomSections || parsedCustomSections.length === 0) && (customSecMap[actId.toString()] || customSecMap[actTitle])) {
+            var secObj = customSecMap[actId.toString()] || customSecMap[actTitle];
+            parsedCustomSections = [];
+            Object.keys(secObj).forEach(function(sTitle) {
+              parsedCustomSections.push({
+                id: 'sec_' + Date.now() + Math.floor(Math.random() * 1000),
+                title: sTitle,
+                questions: secObj[sTitle]
+              });
+            });
+          }
+
           state.activities.push({
-            id: row[0] || Date.now(),
-            title: row[1],
-            category: row[2] || 'กิจกรรม',
-            date: row[3] || '',
-            location: row[4] || '',
-            deadline: row[5] || '',
-            status: row[6] || 'เปิดรับสมัคร',
-            applicants: parseInt(row[7]) || 0,
-            collectMedical: (row[8] === 'เก็บ' || row[8] === true)
+            id: actId,
+            title: actTitle,
+            category: actCat,
+            image: actImg,
+            date: actDate,
+            location: actLoc,
+            deadline: actDeadline,
+            status: actStatus,
+            applicants: actApplicants,
+            collectMedical: actCollectMed,
+            description: actDesc,
+            customSections: parsedCustomSections
           });
         }
       });
@@ -831,17 +965,66 @@ function getStateFromSheets(ss) {
     // 7. อ่านผู้ดูแลระบบ
     var uSheet = ss.getSheetByName("ผู้ดูแลระบบ");
     if (uSheet && uSheet.getLastRow() > 1) {
-      var uVals = uSheet.getRange(2, 1, uSheet.getLastRow() - 1, 4).getValues();
+      var numCols = uSheet.getLastColumn();
+      var uVals = uSheet.getRange(2, 1, uSheet.getLastRow() - 1, Math.max(numCols, 5)).getValues();
       uVals.forEach(function(row) {
-        if (row[2]) {
+        var uName = (row[2] || '').toString().trim();
+        if (uName) {
+          var uPass = 'kku123';
+          var uRole = 'Admin';
+
+          if (numCols >= 5 && row[3] && row[4]) {
+            // โครงสร้างใหม่ 5 คอลัมน์ (ID, Name, Username, Password, Role)
+            uPass = row[3].toString().trim();
+            uRole = row[4].toString().trim();
+          } else {
+            // โครงสร้างเก่า 4 คอลัมน์ (ID, Name, Username, Role) -> ให้รหัสผ่านเริ่มต้นเป็น kku123
+            uRole = (row[3] || 'Admin').toString().trim();
+            uPass = 'kku123';
+          }
+
           state.adminUsers.push({
             id: row[0] || Date.now(),
             fullname: row[1] || '',
-            username: row[2],
-            role: row[3] || 'Admin'
+            username: uName,
+            password: uPass,
+            role: uRole
           });
         }
       });
+    }
+
+    // 8. อ่านโครงสร้างองค์กรและสมาชิก
+    var oSheet = ss.getSheetByName("โครงสร้างองค์กร");
+    if (oSheet && oSheet.getLastRow() > 1) {
+      var oVals = oSheet.getRange(2, 1, oSheet.getLastRow() - 1, 6).getValues();
+      var orgMap = {};
+      oVals.forEach(function(row) {
+        var orgName = (row[0] || '').toString().trim();
+        if (orgName) {
+          if (!orgMap[orgName]) {
+            orgMap[orgName] = { id: Date.now() + Math.floor(Math.random() * 1000), name: orgName, members: [] };
+          }
+          var memberName = (row[1] || '').toString().trim();
+          if (memberName && memberName !== 'ยังไม่มีสมาชิก') {
+            orgMap[orgName].members.push({
+              id: Date.now() + Math.floor(Math.random() * 1000),
+              fullname: memberName,
+              nickname: row[2] || '',
+              position: row[3] || 'สมาชิก',
+              contact: row[4] || '',
+              image: row[5] || ''
+            });
+          }
+        }
+      });
+      Object.keys(orgMap).forEach(function(k) {
+        state.organizations.push(orgMap[k]);
+      });
+    }
+
+    if (!state.adminUsers || state.adminUsers.length === 0) {
+      state.adminUsers = [{ id: 1, fullname: "ผู้ดูแลระบบสโมสรฯ", username: "admin", password: "kku123", role: "Super Admin" }];
     }
 
     if (state.activities.length > 0 || state.newsList.length > 0 || state.equipmentList.length > 0) {
