@@ -3412,7 +3412,8 @@
 
             const remoteState = await fetchStateFromServer();
             if (remoteState) {
-                if (Array.isArray(remoteState.majors)) majors = remoteState.majors;
+                if (Array.isArray(remoteState.majors) && remoteState.majors.length > 0) majors = remoteState.majors;
+                if (!majors || majors.length === 0) majors = defaultMajors;
                 if (Array.isArray(remoteState.activities)) activities = remoteState.activities;
                 if (Array.isArray(remoteState.newsList)) newsList = remoteState.newsList;
                 if (Array.isArray(remoteState.calendarEvents)) calendarEvents = remoteState.calendarEvents;
@@ -3602,7 +3603,8 @@
             try {
                 const remoteState = await fetchStateFromServer();
                 if (remoteState) {
-                    if (Array.isArray(remoteState.majors)) majors = remoteState.majors;
+                    if (Array.isArray(remoteState.majors) && remoteState.majors.length > 0) majors = remoteState.majors;
+                    if (!majors || majors.length === 0) majors = defaultMajors;
                     if (Array.isArray(remoteState.activities)) activities = remoteState.activities;
                     if (Array.isArray(remoteState.newsList)) newsList = remoteState.newsList;
                     if (Array.isArray(remoteState.calendarEvents)) calendarEvents = remoteState.calendarEvents;
@@ -4704,11 +4706,15 @@
 
         // --- Major Admin ---
         function renderMajorsDropdown() {
+            if (!majors || majors.length === 0) majors = defaultMajors;
             const select = document.getElementById('form-major-select');
+            if (!select) return;
+            const curVal = select.value;
             select.innerHTML = '<option value="">-- เลือกสาขาวิชา --</option>';
             majors.forEach(m => {
                 select.innerHTML += `<option value="${m}">${m}</option>`;
             });
+            if (curVal) select.value = curVal;
         }
 
         function renderAdminMajorsList() {
