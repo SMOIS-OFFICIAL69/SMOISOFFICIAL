@@ -4782,7 +4782,7 @@
             if (!tbody) return;
             tbody.innerHTML = '';
 
-            if (organizations.length === 0) {
+            if (!organizations || organizations.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูลองค์กรหรือชมรมในระบบ</td></tr>`;
                 return;
             }
@@ -4790,11 +4790,12 @@
             organizations.forEach((org, idx) => {
                 const isFirst = idx === 0;
                 const isLast = idx === organizations.length - 1;
+                const memberCount = (org.members || []).length;
 
                 tbody.innerHTML += `
                     <tr>
                         <td class="fw-bold text-dark">${org.name}</td>
-                        <td class="text-center"><span class="badge bg-secondary">${org.members.length} คน</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">${memberCount} คน</span></td>
                         <td class="text-center align-middle">
                             <div class="d-flex align-items-center justify-content-center">
                                 <i class="bi bi-grip-vertical text-muted drag-handle fs-5 me-1" style="cursor: grab;" title="ลากเพื่อเปลี่ยนลำดับ"></i>
@@ -4803,9 +4804,9 @@
                             </div>
                         </td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-outline-info btn-pill me-1" onclick="openManageMembers(${org.id})"><i class="bi bi-people"></i> จัดการสมาชิก</button>
-                            <button class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openEditOrgModal(${org.id})"><i class="bi bi-pencil-square"></i> แก้ไข</button>
-                            <button class="btn btn-sm btn-outline-danger btn-pill" onclick="deleteOrg(${org.id})"><i class="bi bi-trash"></i></button>
+                            <button class="btn btn-sm btn-outline-info btn-pill me-1" onclick="openManageMembers('${org.id}')"><i class="bi bi-people"></i> จัดการสมาชิก</button>
+                            <button class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openEditOrgModal('${org.id}')"><i class="bi bi-pencil-square"></i> แก้ไข</button>
+                            <button class="btn btn-sm btn-outline-danger btn-pill" onclick="deleteOrg('${org.id}')"><i class="bi bi-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -4833,7 +4834,7 @@
 
         function openManageMembers(orgId) {
             currentManageOrgId = orgId;
-            const org = organizations.find(o => o.id === orgId);
+            const org = organizations.find(o => o.id == orgId);
             if (!org) return;
 
             document.getElementById('manage-members-org-name').innerText = org.name;
@@ -4842,7 +4843,7 @@
         }
 
         function moveMemberUp(index) {
-            const org = organizations.find(o => o.id === currentManageOrgId);
+            const org = organizations.find(o => o.id == currentManageOrgId);
             if (!org || index <= 0) return;
             const temp = org.members[index];
             org.members[index] = org.members[index - 1];
@@ -4853,7 +4854,7 @@
         }
 
         function moveMemberDown(index) {
-            const org = organizations.find(o => o.id === currentManageOrgId);
+            const org = organizations.find(o => o.id == currentManageOrgId);
             if (!org || index >= org.members.length - 1) return;
             const temp = org.members[index];
             org.members[index] = org.members[index + 1];
@@ -4867,8 +4868,8 @@
             const tbody = document.getElementById('admin-members-table-body');
             if (!tbody) return;
             tbody.innerHTML = '';
-            const org = organizations.find(o => o.id === currentManageOrgId);
-            if (!org || org.members.length === 0) {
+            const org = organizations.find(o => o.id == currentManageOrgId);
+            if (!org || !org.members || org.members.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีรายชื่อสมาชิกในองค์กรนี้</td></tr>`;
                 return;
             }
@@ -4876,15 +4877,16 @@
             org.members.forEach((m, idx) => {
                 const isFirst = idx === 0;
                 const isLast = idx === org.members.length - 1;
+                const safeImg = formatImageUrl(m.image || '');
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><img src="${formatImageUrl(m.image)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd;"></td>
+                        <td><img src="${safeImg || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80'}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd;"></td>
                         <td>
-                            <div class="fw-bold text-dark">${m.fullname}</div>
-                            <small class="text-muted">ชื่อเล่น: ${m.nickname}</small>
+                            <div class="fw-bold text-dark">${m.fullname || '-'}</div>
+                            <small class="text-muted">ชื่อเล่น: ${m.nickname || '-'}</small>
                         </td>
-                        <td><span class="badge bg-danger">${m.position}</span></td>
+                        <td><span class="badge bg-danger">${m.position || '-'}</span></td>
                         <td class="small text-muted">${m.contact || '-'}</td>
                         <td class="text-center align-middle">
                             <div class="d-flex align-items-center justify-content-center">
@@ -4894,8 +4896,8 @@
                             </div>
                         </td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openEditMemberModal(${m.id})"><i class="bi bi-pencil-square"></i> แก้ไข</button>
-                            <button class="btn btn-sm btn-outline-danger btn-pill" onclick="deleteMember(${m.id})"><i class="bi bi-trash"></i> ลบ</button>
+                            <button class="btn btn-sm btn-outline-primary btn-pill me-1" onclick="openEditMemberModal('${m.id}')"><i class="bi bi-pencil-square"></i> แก้ไข</button>
+                            <button class="btn btn-sm btn-outline-danger btn-pill" onclick="deleteMember('${m.id}')"><i class="bi bi-trash"></i> ลบ</button>
                         </td>
                     </tr>
                 `;
@@ -4954,23 +4956,26 @@
         }
 
         function saveMember() {
-            const org = organizations.find(o => o.id === currentManageOrgId);
+            const org = organizations.find(o => o.id == currentManageOrgId);
             if (!org) return;
 
             const idVal = document.getElementById('modal-member-id').value;
-            const img = formatImageUrl(document.getElementById('modal-member-img').value);
+            const rawImg = document.getElementById('modal-member-img').value.trim();
+            const img = rawImg ? formatImageUrl(rawImg) : '';
             const fullname = document.getElementById('modal-member-fullname').value.trim();
             const nickname = document.getElementById('modal-member-nickname').value.trim();
             const position = document.getElementById('modal-member-position').value.trim();
             const contact = document.getElementById('modal-member-contact').value.trim();
 
-            if (!img || !fullname || !nickname || !position) {
-                alert('กรุณากรอกข้อมูล รูปภาพ ชื่อ ตำแหน่ง ให้ครบถ้วน');
+            if (!fullname || !position) {
+                alert('กรุณากรอกข้อมูล ชื่อ-นามสกุล และตำแหน่ง ให้เรียบร้อย');
                 return;
             }
 
+            if (!org.members) org.members = [];
+
             if (idVal) {
-                const member = org.members.find(m => m.id === parseInt(idVal));
+                const member = org.members.find(m => m.id == idVal);
                 if (member) {
                     member.image = img;
                     member.fullname = fullname;
@@ -4997,11 +5002,11 @@
         }
 
         function deleteMember(memberId) {
-            const org = organizations.find(o => o.id === currentManageOrgId);
+            const org = organizations.find(o => o.id == currentManageOrgId);
             if (!org) return;
 
             if (confirm('คุณต้องการลบสมาชิกคนนี้ออกจากองค์กรใช่หรือไม่?')) {
-                org.members = org.members.filter(m => m.id !== memberId);
+                org.members = (org.members || []).filter(m => m.id != memberId);
                 saveAllToLocalStorage();
                 renderAdminMembers();
                 renderPublicOrgs();
@@ -5015,9 +5020,9 @@
             if (!container) return;
             let html = `<button class="btn btn-sm ${currentOrgFilter === 'all' ? 'btn-primary active' : 'btn-outline-secondary'} rounded-pill px-3 filter-org-btn" onclick="filterPublicOrgCategory('all', this)">ทั้งหมด</button>`;
 
-            organizations.forEach(org => {
+            (organizations || []).forEach(org => {
                 const isActive = currentOrgFilter == org.id;
-                html += `<button class="btn btn-sm ${isActive ? 'btn-primary active' : 'btn-outline-secondary'} rounded-pill px-3 filter-org-btn" onclick="filterPublicOrgCategory(${org.id}, this)">${org.name}</button>`;
+                html += `<button class="btn btn-sm ${isActive ? 'btn-primary active' : 'btn-outline-secondary'} rounded-pill px-3 filter-org-btn" onclick="filterPublicOrgCategory('${org.id}', this)">${org.name}</button>`;
             });
             container.innerHTML = html;
         }
@@ -5047,7 +5052,7 @@
             if (!container) return;
             container.innerHTML = '';
 
-            if (organizations.length === 0) {
+            if (!organizations || organizations.length === 0) {
                 container.innerHTML = `<div class="text-center py-5 text-muted"><i class="bi bi-diagram-2 fs-1 d-block mb-2"></i><p class="mb-0">อยู่ระหว่างการปรับปรุงฐานข้อมูลโครงสร้างองค์กร...</p></div>`;
                 return;
             }
@@ -5063,7 +5068,7 @@
             filteredOrgs.forEach(org => {
                 let matchingMembers = org.members || [];
                 if (query !== '') {
-                    matchingMembers = org.members.filter(m =>
+                    matchingMembers = (org.members || []).filter(m =>
                         (m.fullname && m.fullname.toLowerCase().includes(query)) ||
                         (m.nickname && m.nickname.toLowerCase().includes(query)) ||
                         (m.position && m.position.toLowerCase().includes(query)) ||
@@ -5077,34 +5082,40 @@
 
                 totalMembersFound += matchingMembers.length;
 
-                let membersHTML = matchingMembers.map(m => `
-                    <div class="col-md-4 col-sm-6 mb-4">
-                        <div class="card border-0 shadow-sm h-100 text-center p-3 member-card-interactive position-relative" 
-                             style="border-radius: var(--radius-md);"
-                             onclick="openMemberDetailModal(${org.id}, ${m.id})">
-                            <div class="position-relative d-inline-block mx-auto mt-2" 
-                                 onclick="event.stopPropagation(); viewFullImage('${m.image}', '${(m.fullname || '').replace(/'/g, "\\'")}')"
-                                 title="คลิกเพื่อดูรูปขนาดเต็ม">
-                                <img src="${formatImageUrl(m.image)}" class="shadow-sm member-avatar" style="width: 95px; height: 95px; object-fit: cover; border-radius: 50%; border: 3px solid var(--kku-primary-light); cursor: pointer; transition: transform 0.25s ease;">
-                            </div>
-                            <div class="card-body px-1 d-flex flex-column justify-content-between mt-1">
-                                <div>
-                                    <h6 class="fw-bold text-dark mb-1">${m.fullname} ${m.nickname ? `(${m.nickname})` : ''}</h6>
-                                    <p class="text-danger small fw-medium mb-2">${m.position}</p>
-                                    ${m.contact ? `<small class="text-muted d-block bg-light p-2 rounded-3 text-truncate mb-2" style="font-size: 0.78rem;" title="${m.contact}"><i class="bi bi-person-lines-fill me-1"></i>${m.contact}</small>` : ''}
-                                </div>
-                                <div class="mt-2">
-                                    <span class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-nowrap" style="font-size: 0.75rem;">
-                                        <i class="bi bi-person-circle me-1"></i>ดูข้อมูลส่วนตัว
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
+                let membersHTML = '';
                 if (matchingMembers.length === 0) {
                     membersHTML = `<div class="col-12 text-center text-muted small py-3">ยังไม่มีข้อมูลสมาชิกในองค์กรนี้</div>`;
+                } else {
+                    membersHTML = matchingMembers.map(m => {
+                        const safeFullname = (m.fullname || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeImg = formatImageUrl(m.image || '');
+                        const displayImg = safeImg || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80';
+                        return `
+                            <div class="col-md-4 col-sm-6 mb-4">
+                                <div class="card border-0 shadow-sm h-100 text-center p-3 member-card-interactive position-relative" 
+                                     style="border-radius: var(--radius-md);"
+                                     onclick="openMemberDetailModal('${org.id}', '${m.id}')">
+                                    <div class="position-relative d-inline-block mx-auto mt-2" 
+                                         onclick="event.stopPropagation(); viewFullImage('${displayImg}', '${safeFullname}')"
+                                         title="คลิกเพื่อดูรูปขนาดเต็ม">
+                                        <img src="${displayImg}" class="shadow-sm member-avatar" style="width: 95px; height: 95px; object-fit: cover; border-radius: 50%; border: 3px solid var(--kku-primary-light); cursor: pointer; transition: transform 0.25s ease;">
+                                    </div>
+                                    <div class="card-body px-1 d-flex flex-column justify-content-between mt-1">
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-1">${m.fullname || 'ไม่ระบุชื่อ'} ${m.nickname ? `(${m.nickname})` : ''}</h6>
+                                            <p class="text-danger small fw-medium mb-2">${m.position || 'สมาชิก'}</p>
+                                            ${m.contact ? `<small class="text-muted d-block bg-light p-2 rounded-3 text-truncate mb-2" style="font-size: 0.78rem;" title="${m.contact}"><i class="bi bi-person-lines-fill me-1"></i>${m.contact}</small>` : ''}
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-nowrap" style="font-size: 0.75rem;">
+                                                <i class="bi bi-person-circle me-1"></i>ดูข้อมูลส่วนตัว
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                 }
 
                 container.innerHTML += `
@@ -5147,18 +5158,19 @@
         let currentSelectedMemberContact = '';
 
         function openMemberDetailModal(orgId, memberId) {
-            const org = organizations.find(o => o.id === orgId);
+            const org = organizations.find(o => o.id == orgId);
             if (!org) return;
-            const m = org.members.find(mem => mem.id === memberId);
+            const m = (org.members || []).find(mem => mem.id == memberId);
             if (!m) return;
 
             document.getElementById('detail-member-org-badge').innerHTML = `<i class="bi bi-diagram-3 me-1"></i>${org.name}`;
-            document.getElementById('detail-member-fullname').innerText = m.fullname;
-            document.getElementById('detail-member-name-nickname').innerText = `${m.fullname} ${m.nickname ? `(${m.nickname})` : ''}`;
-            document.getElementById('detail-member-position').innerText = m.position;
-            document.getElementById('detail-member-position-text').innerText = m.position;
-            document.getElementById('detail-member-org-text').innerText = org.name;
-            document.getElementById('detail-member-img').src = formatImageUrl(m.image);
+            document.getElementById('detail-member-fullname').innerText = m.fullname || '-';
+            document.getElementById('detail-member-name-nickname').innerText = `${m.fullname || '-'} ${m.nickname ? `(${m.nickname})` : ''}`;
+            document.getElementById('detail-member-position').innerText = m.position || '-';
+            document.getElementById('detail-member-position-text').innerText = m.position || '-';
+            document.getElementById('detail-member-org-text').innerText = org.name || '-';
+            const memberImg = formatImageUrl(m.image || '');
+            document.getElementById('detail-member-img').src = memberImg || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80';
 
             const contactListEl = document.getElementById('detail-member-contact-list');
             contactListEl.innerHTML = '';
