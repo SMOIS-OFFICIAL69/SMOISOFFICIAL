@@ -408,67 +408,88 @@ function doPost(e) {
  * ฟังก์ชันบันทึกข้อมูลลง Google Sheets (แยกหมวดหมู่อย่างเป็นระเบียบ)
  * ==============================================================================
  */
+function updateSheetBatch(sheet, headers, dataRows) {
+  if (!sheet) return;
+  sheet.clear();
+  var matrix = [headers];
+  if (dataRows && dataRows.length > 0) {
+    dataRows.forEach(function(r) {
+      matrix.push(r);
+    });
+  }
+  sheet.getRange(1, 1, matrix.length, headers.length).setValues(matrix);
+  try {
+    sheet.getRange(1, 1, 1, headers.length).setBackground('#800000').setFontColor('#FFFFFF').setFontWeight('bold');
+  } catch(e) {}
+}
+
 function saveAllStateToSheets(state) {
-  if (!state) return;
+  if (!state || typeof state !== 'object') return;
   var ss = getSpreadsheet();
   if (!ss) return;
 
   // 1. ชีทสรุปสถิติระบบ (Overview Dashboard Sheet)
-  var summarySheet = getOrCreateSheet(ss, "สถิติระบบ");
-  summarySheet.clear();
-  createSheetHeader(summarySheet, ["รายการข้อมูล", "จำนวนในระบบ", "อัปเดตล่าสุด"]);
-  var nowStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
-  summarySheet.appendRow(["กิจกรรมทั้งหมด", (state.activities || []).length, nowStr]);
-  summarySheet.appendRow(["คำร้องขอยืมอุปกรณ์", (state.borrowRequests || []).length, nowStr]);
-  summarySheet.appendRow(["อุปกรณ์ในคลัง", (state.equipmentList || []).length, nowStr]);
-  summarySheet.appendRow(["ข่าวประชาสัมพันธ์", (state.newsList || []).length, nowStr]);
-  summarySheet.appendRow(["กำหนดการปฏิทิน", (state.calendarEvents || []).length, nowStr]);
-  summarySheet.appendRow(["องค์กรและชมรม", (state.organizations || []).length, nowStr]);
-  summarySheet.appendRow(["ผู้ดูแลระบบ (Admins)", (state.adminUsers || []).length, nowStr]);
-  summarySheet.appendRow(["สาขาวิชา", (state.majors || []).length, nowStr]);
+  if (state.activities || state.equipmentList || state.borrowRequests || state.newsList) {
+    var summarySheet = getOrCreateSheet(ss, "สถิติระบบ");
+    var nowStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    var summaryRows = [
+      ["รายการข้อมูล", "จำนวนในระบบ", "อัปเดตล่าสุด"],
+      ["กิจกรรมทั้งหมด", (state.activities || []).length, nowStr],
+      ["คำร้องขอยืมอุปกรณ์", (state.borrowRequests || []).length, nowStr],
+      ["อุปกรณ์ในคลัง", (state.equipmentList || []).length, nowStr],
+      ["ข่าวประชาสัมพันธ์", (state.newsList || []).length, nowStr],
+      ["กำหนดการปฏิทิน", (state.calendarEvents || []).length, nowStr],
+      ["องค์กรและชมรม", (state.organizations || []).length, nowStr],
+      ["ผู้ดูแลระบบ (Admins)", (state.adminUsers || []).length, nowStr],
+      ["สาขาวิชา", (state.majors || []).length, nowStr]
+    ];
+    summarySheet.clear();
+    summarySheet.getRange(1, 1, summaryRows.length, 3).setValues(summaryRows);
+    try { summarySheet.getRange(1, 1, 1, 3).setBackground('#800000').setFontColor('#FFFFFF').setFontWeight('bold'); } catch(e) {}
+  }
 
-  // 2. ชีทรายการกิจกรรม (Activities)
-  var actSheet = getOrCreateSheet(ss, "รายการกิจกรรม");
-  actSheet.clear();
-  createSheetHeader(actSheet, [
-    "ID", "ชื่อกิจกรรม", "หมวดหมู่", "รูปภาพแบนเนอร์ URL", "วันที่จัดงาน", "สถานที่", 
-    "กำหนดปิดรับ", "สถานะ", "ผู้สมัคร (คน)", "เก็บข้อมูลสุขภาพ", "รายละเอียดกิจกรรม", "ส่วนเพิ่มเติม (Custom Sections JSON)"
-  ]);
+  // 2. ชีทรายการกิจกรรม (Activities) & ชีทโครงสร้างฟอร์มเพิ่มเติม
+  if (Array.isArray(state.activities)) {
+    var actHeaders = [
+      "ID", "ชื่อกิจกรรม", "หมวดหมู่", "รูปภาพแบนเนอร์ URL", "วันที่จัดงาน", "สถานที่", 
+      "กำหนดปิดรับ", "สถานะ", "ผู้สมัคร (คน)", "เก็บข้อมูลสุขภาพ", "รายละเอียดกิจกรรม", "ส่วนเพิ่มเติม (Custom Sections JSON)"
+    ];
+    var actRows = [];
 
-  var customSecSheet = getOrCreateSheet(ss, "โครงสร้างฟอร์มเพิ่มเติม");
-  customSecSheet.clear();
-  createSheetHeader(customSecSheet, [
-    "ID กิจกรรม", "ชื่อกิจกรรม", "ชื่อส่วนเพิ่มเติม (Section Title)", "ข้อคำถาม (Question Label)", "ประเภทข้อคำถาม (Type)", "ตัวเลือก (Options)", "จำเป็นต้องตอบ (Required)"
-  ]);
+    var csHeaders = [
+      "ID กิจกรรม", "ชื่อกิจกรรม", "ชื่อส่วนเพิ่มเติม (Section Title)", "ข้อคำถาม (Question Label)", "ประเภทข้อคำถาม (Type)", "ตัวเลือก (Options)", "จำเป็นต้องตอบ (Required)"
+    ];
+    var csRows = [];
 
-  if (state.activities && state.activities.length > 0) {
     state.activities.forEach(function(a) {
+      if (!a) return;
       var customSecs = a.customSections || (a.customQuestions ? [{ id: 'sec_1', title: 'ส่วนเพิ่มเติม', questions: a.customQuestions }] : []);
       var customJsonStr = (customSecs && customSecs.length > 0) ? JSON.stringify(customSecs) : '';
 
-      actSheet.appendRow([
-        a.id, 
-        a.title, 
-        a.category, 
-        a.image || '', 
-        a.date, 
-        a.location, 
-        a.deadline, 
-        a.status, 
-        a.applicants || 0, 
-        a.collectMedical ? 'เก็บ' : 'ไม่เก็บ', 
-        a.description || '', 
+      actRows.push([
+        a.id || Date.now(),
+        a.title || 'กิจกรรมไม่มีชื่อ',
+        a.category || 'กิจกรรม',
+        a.image || '',
+        a.date || '',
+        a.location || '',
+        a.deadline || '',
+        a.status || 'เปิดรับสมัคร',
+        a.applicants || 0,
+        a.collectMedical ? 'เก็บ' : 'ไม่เก็บ',
+        a.description || '',
         customJsonStr
       ]);
 
       if (customSecs && customSecs.length > 0) {
         customSecs.forEach(function(sec) {
-          if (sec.questions && sec.questions.length > 0) {
+          if (sec && sec.questions && sec.questions.length > 0) {
             sec.questions.forEach(function(q) {
+              if (!q) return;
               var optsStr = Array.isArray(q.options) ? q.options.join(', ') : (q.options || '');
-              customSecSheet.appendRow([
-                a.id,
-                a.title,
+              csRows.push([
+                a.id || '',
+                a.title || '',
                 sec.title || 'ส่วนเพิ่มเติม',
                 q.label || '',
                 q.type || 'text',
@@ -480,83 +501,92 @@ function saveAllStateToSheets(state) {
         });
       }
     });
+
+    var actSheet = getOrCreateSheet(ss, "รายการกิจกรรม");
+    updateSheetBatch(actSheet, actHeaders, actRows);
+
+    var customSecSheet = getOrCreateSheet(ss, "โครงสร้างฟอร์มเพิ่มเติม");
+    updateSheetBatch(customSecSheet, csHeaders, csRows);
   }
 
   // 3. ชีทรายการอุปกรณ์ในคลัง (Equipment Inventory)
-  var eqSheet = getOrCreateSheet(ss, "รายการอุปกรณ์ในคลัง");
-  eqSheet.clear();
-  createSheetHeader(eqSheet, ["ID", "ชื่ออุปกรณ์", "หมวดหมู่", "จำนวนรวมคลัง", "รูปภาพ URL", "รายละเอียด"]);
-  if (state.equipmentList && state.equipmentList.length > 0) {
-    state.equipmentList.forEach(function(e) {
-      eqSheet.appendRow([e.id, e.name, e.category, e.totalQty, e.image, e.description || '-']);
+  if (Array.isArray(state.equipmentList)) {
+    var eqHeaders = ["ID", "ชื่ออุปกรณ์", "หมวดหมู่", "จำนวนรวมคลัง", "รูปภาพ URL", "รายละเอียด"];
+    var eqRows = state.equipmentList.map(function(e) {
+      return [e.id || Date.now(), e.name || '', e.category || 'ทั่วไป', e.totalQty || 1, e.image || '', e.description || '-'];
     });
+    var eqSheet = getOrCreateSheet(ss, "รายการอุปกรณ์ในคลัง");
+    updateSheetBatch(eqSheet, eqHeaders, eqRows);
   }
 
   // 4. ชีทคำร้องขอยืมอุปกรณ์ (Borrow Requests)
-  var bSheet = getOrCreateSheet(ss, "คำร้องขอยืมอุปกรณ์");
-  bSheet.clear();
-  createSheetHeader(bSheet, ["รหัสคำร้อง", "วัน-เวลาที่ยื่น", "รหัสนักศึกษา", "ชื่อ-นามสกุล", "สาขาวิชา", "ชั้นปี", "เบอร์โทร/Line", "อุปกรณ์", "จำนวน", "วันที่ยืม", "กำหนดคืน", "โครงการ/สังกัด", "วัตถุประสงค์", "สถานะ"]);
-  if (state.borrowRequests && state.borrowRequests.length > 0) {
-    state.borrowRequests.forEach(function(r) {
-      bSheet.appendRow([r.id, r.createdAt, r.studentId, r.studentName, r.major, 'ปี ' + r.year, r.phone, r.equipmentName, r.qty, r.borrowDate, r.returnDate, r.orgName, r.purpose || '-', r.status]);
+  if (Array.isArray(state.borrowRequests)) {
+    var bHeaders = ["รหัสคำร้อง", "วัน-เวลาที่ยื่น", "รหัสนักศึกษา", "ชื่อ-นามสกุล", "สาขาวิชา", "ชั้นปี", "เบอร์โทร/Line", "อุปกรณ์", "จำนวน", "วันที่ยืม", "กำหนดคืน", "โครงการ/สังกัด", "วัตถุประสงค์", "สถานะ"];
+    var bRows = state.borrowRequests.map(function(r) {
+      return [r.id || '', r.createdAt || '', r.studentId || '', r.studentName || '', r.major || '', 'ปี ' + (r.year || 1), r.phone || '', r.equipmentName || '', r.qty || 1, r.borrowDate || '', r.returnDate || '', r.orgName || '', r.purpose || '-', r.status || 'รออนุมัติ'];
     });
+    var bSheet = getOrCreateSheet(ss, "คำร้องขอยืมอุปกรณ์");
+    updateSheetBatch(bSheet, bHeaders, bRows);
   }
 
   // 5. ชีทข่าวประชาสัมพันธ์ (News)
-  var nSheet = getOrCreateSheet(ss, "ข่าวประชาสัมพันธ์");
-  nSheet.clear();
-  createSheetHeader(nSheet, ["ID", "หัวข้อข่าวสาร", "หมวดหมู่", "สรุปข่าว", "เนื้อหาฉบับเต็ม", "รูปภาพ URL"]);
-  if (state.newsList && state.newsList.length > 0) {
-    state.newsList.forEach(function(n) {
+  if (Array.isArray(state.newsList)) {
+    var nHeaders = ["ID", "หัวข้อข่าวสาร", "หมวดหมู่", "สรุปข่าว", "เนื้อหาฉบับเต็ม", "รูปภาพ URL"];
+    var nRows = state.newsList.map(function(n) {
       var imgStr = (Array.isArray(n.images) && n.images.length > 0) ? n.images.join(', ') : (n.image || '');
-      nSheet.appendRow([n.id, n.title, n.category, n.summary, n.content || '-', imgStr]);
+      return [n.id || Date.now(), n.title || '', n.category || 'ข่าวสาร', n.summary || '', n.content || '-', imgStr];
     });
+    var nSheet = getOrCreateSheet(ss, "ข่าวประชาสัมพันธ์");
+    updateSheetBatch(nSheet, nHeaders, nRows);
   }
 
   // 6. ชีทกำหนดการปฏิทิน (Calendar Events)
-  var cSheet = getOrCreateSheet(ss, "กำหนดการปฏิทิน");
-  cSheet.clear();
-  createSheetHeader(cSheet, ["ID", "วันที่", "เดือน", "ชื่อเดือน", "หัวข้อกิจกรรม", "เวลาจัดงาน", "สถานที่"]);
-  if (state.calendarEvents && state.calendarEvents.length > 0) {
-    state.calendarEvents.forEach(function(c) {
-      cSheet.appendRow([c.id, c.date, c.month, c.monthName, c.title, c.time, c.location]);
+  if (Array.isArray(state.calendarEvents)) {
+    var cHeaders = ["ID", "วันที่", "เดือน", "ชื่อเดือน", "หัวข้อกิจกรรม", "เวลาจัดงาน", "สถานที่"];
+    var cRows = state.calendarEvents.map(function(c) {
+      return [c.id || Date.now(), c.date || '', c.month || '', c.monthName || '', c.title || '', c.time || '', c.location || ''];
     });
+    var cSheet = getOrCreateSheet(ss, "กำหนดการปฏิทิน");
+    updateSheetBatch(cSheet, cHeaders, cRows);
   }
 
   // 7. ชีทโครงสร้างองค์กรและสมาชิก (Organizations & Members)
-  var oSheet = getOrCreateSheet(ss, "โครงสร้างองค์กร");
-  oSheet.clear();
-  createSheetHeader(oSheet, ["ชื่อองค์กร/ชมรม", "ชื่อ-นามสกุลสมาชิก", "ชื่อเล่น", "ตำแหน่ง", "ช่องทางติดต่อ", "รูปภาพ URL"]);
-  if (state.organizations && state.organizations.length > 0) {
+  if (Array.isArray(state.organizations)) {
+    var oHeaders = ["ชื่อองค์กร/ชมรม", "ชื่อ-นามสกุลสมาชิก", "ชื่อเล่น", "ตำแหน่ง", "ช่องทางติดต่อ", "รูปภาพ URL"];
+    var oRows = [];
     state.organizations.forEach(function(org) {
+      if (!org) return;
       if (org.members && org.members.length > 0) {
         org.members.forEach(function(m) {
-          oSheet.appendRow([org.name, m.fullname, m.nickname, m.position, m.contact || '-', m.image]);
+          if (!m) return;
+          oRows.push([org.name || '', m.fullname || '', m.nickname || '', m.position || '', m.contact || '-', m.image || '']);
         });
       } else {
-        oSheet.appendRow([org.name, 'ยังไม่มีสมาชิก', '-', '-', '-', '-']);
+        oRows.push([org.name || '', 'ยังไม่มีสมาชิก', '-', '-', '-', '-']);
       }
     });
+    var oSheet = getOrCreateSheet(ss, "โครงสร้างองค์กร");
+    updateSheetBatch(oSheet, oHeaders, oRows);
   }
 
   // 8. ชีทผู้ดูแลระบบ (Admin Users)
-  var uSheet = getOrCreateSheet(ss, "ผู้ดูแลระบบ");
-  uSheet.clear();
-  createSheetHeader(uSheet, ["ID", "ชื่อ-นามสกุล", "Username", "Password", "บทบาท (Role)"]);
-  if (state.adminUsers && state.adminUsers.length > 0) {
-    state.adminUsers.forEach(function(u) {
-      uSheet.appendRow([u.id, u.fullname, u.username, u.password || 'kku123', u.role]);
+  if (Array.isArray(state.adminUsers) && state.adminUsers.length > 0) {
+    var uHeaders = ["ID", "ชื่อ-นามสกุล", "Username", "Password", "บทบาท (Role)"];
+    var uRows = state.adminUsers.map(function(u) {
+      return [u.id || Date.now(), u.fullname || '', u.username || '', u.password || 'kku123', u.role || 'Admin'];
     });
+    var uSheet = getOrCreateSheet(ss, "ผู้ดูแลระบบ");
+    updateSheetBatch(uSheet, uHeaders, uRows);
   }
 
   // 9. ชีทสาขาวิชา (Majors)
-  var mSheet = getOrCreateSheet(ss, "สาขาวิชา");
-  mSheet.clear();
-  createSheetHeader(mSheet, ["ลำดับ", "ชื่อสาขาวิชา"]);
-  if (state.majors && state.majors.length > 0) {
-    state.majors.forEach(function(m, idx) {
-      mSheet.appendRow([idx + 1, m]);
+  if (Array.isArray(state.majors) && state.majors.length > 0) {
+    var mHeaders = ["ลำดับ", "ชื่อสาขาวิชา"];
+    var mRows = state.majors.map(function(m, idx) {
+      return [idx + 1, m];
     });
+    var mSheet = getOrCreateSheet(ss, "สาขาวิชา");
+    updateSheetBatch(mSheet, mHeaders, mRows);
   }
 
   // 10. ชีทสรุปผู้เข้าร่วมแต่ละกิจกรรม

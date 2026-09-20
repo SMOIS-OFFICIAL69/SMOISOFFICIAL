@@ -3136,6 +3136,44 @@
             }
         ];
 
+        function cleanNullsFromState() {
+            majors = (majors || []).filter(Boolean);
+            activities = (activities || []).filter(Boolean);
+            newsList = (newsList || []).filter(Boolean);
+            calendarEvents = (calendarEvents || []).filter(Boolean);
+            adminUsers = (adminUsers || []).filter(Boolean);
+            equipmentList = (equipmentList || []).filter(Boolean);
+            borrowRequests = (borrowRequests || []).filter(Boolean);
+            if (Array.isArray(organizations)) {
+                organizations = organizations.filter(Boolean);
+                organizations.forEach(org => {
+                    if (org && Array.isArray(org.members)) {
+                        org.members = org.members.filter(Boolean);
+                    }
+                });
+            }
+        }
+
+        function pushStateToServer() {
+            if (!SCRIPT_URL || SCRIPT_URL.trim() === "") return;
+            cleanNullsFromState();
+            const state = { 
+                majors: majors || [], 
+                activities: activities || [], 
+                newsList: newsList || [], 
+                calendarEvents: calendarEvents || [], 
+                adminUsers: adminUsers || [], 
+                organizations: organizations || [], 
+                equipmentList: equipmentList || [], 
+                borrowRequests: borrowRequests || [] 
+            };
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'saveState', state })
+            }).catch(err => console.warn('บันทึกข้อมูลขึ้นเซิร์ฟเวอร์กลางไม่สำเร็จ:', err));
+        }
+
         // 7. ข้อมูลรายการอุปกรณ์เริ่มต้น
         const defaultEquipment = [
             {
@@ -3544,16 +3582,7 @@
             }
         }
 
-        function cleanNullsFromState() {
-            if (Array.isArray(organizations)) {
-                organizations = organizations.filter(Boolean);
-                organizations.forEach(org => {
-                    if (org && Array.isArray(org.members)) {
-                        org.members = org.members.filter(Boolean);
-                    }
-                });
-            }
-        }
+
 
         function cacheDataLocally() {
             cleanNullsFromState();
@@ -3586,16 +3615,7 @@
             }
         }
 
-        function pushStateToServer() {
-            if (!SCRIPT_URL || SCRIPT_URL.trim() === "") return;
-            cleanNullsFromState();
-            const state = { majors, activities, newsList, calendarEvents, adminUsers, organizations, equipmentList, borrowRequests };
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'saveState', state })
-            }).catch(err => console.warn('บันทึกข้อมูลขึ้นเซิร์ฟเวอร์กลางไม่สำเร็จ:', err));
-        }
+
 
         async function refreshStateFromServer() {
             if (isSyncingWithServer) return;
