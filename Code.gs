@@ -112,6 +112,10 @@ function doGet(e) {
       if (!state) {
         state = getStateFromDriveBackup();
       }
+      if (!state) {
+        var ss = getSpreadsheet();
+        state = getStateFromSheets(ss);
+      }
       return createJsonResponse({ status: 'success', state: state });
     }
 
@@ -687,6 +691,164 @@ function getStateFromDriveBackup() {
     }
   } catch (err) {
     Logger.log("ไม่สามารถอ่านไฟล์สำรองจาก Google Drive ได้: " + err.toString());
+  }
+  return null;
+}
+
+function getStateFromSheets(ss) {
+  if (!ss) ss = getSpreadsheet();
+  if (!ss) return null;
+
+  try {
+    var state = {
+      activities: [],
+      newsList: [],
+      calendarEvents: [],
+      adminUsers: [],
+      organizations: [],
+      equipmentList: [],
+      borrowRequests: [],
+      majors: []
+    };
+
+    // 1. อ่านรายการกิจกรรม
+    var actSheet = ss.getSheetByName("รายการกิจกรรม");
+    if (actSheet && actSheet.getLastRow() > 1) {
+      var actVals = actSheet.getRange(2, 1, actSheet.getLastRow() - 1, 9).getValues();
+      actVals.forEach(function(row) {
+        if (row[1]) {
+          state.activities.push({
+            id: row[0] || Date.now(),
+            title: row[1],
+            category: row[2] || 'กิจกรรม',
+            date: row[3] || '',
+            location: row[4] || '',
+            deadline: row[5] || '',
+            status: row[6] || 'เปิดรับสมัคร',
+            applicants: parseInt(row[7]) || 0,
+            collectMedical: (row[8] === 'เก็บ' || row[8] === true)
+          });
+        }
+      });
+    }
+
+    // 2. อ่านข่าวประชาสัมพันธ์
+    var nSheet = ss.getSheetByName("ข่าวประชาสัมพันธ์");
+    if (nSheet && nSheet.getLastRow() > 1) {
+      var nVals = nSheet.getRange(2, 1, nSheet.getLastRow() - 1, 6).getValues();
+      nVals.forEach(function(row) {
+        if (row[1]) {
+          var imgStr = (row[5] || '').toString();
+          var imgs = imgStr ? imgStr.split(',').map(function(s){ return s.trim(); }) : [];
+          state.newsList.push({
+            id: row[0] || Date.now(),
+            title: row[1],
+            category: row[2] || 'ข่าวสาร',
+            summary: row[3] || '',
+            content: row[4] || '',
+            image: imgs[0] || '',
+            images: imgs
+          });
+        }
+      });
+    }
+
+    // 3. อ่านกำหนดการปฏิทิน
+    var cSheet = ss.getSheetByName("กำหนดการปฏิทิน");
+    if (cSheet && cSheet.getLastRow() > 1) {
+      var cVals = cSheet.getRange(2, 1, cSheet.getLastRow() - 1, 7).getValues();
+      cVals.forEach(function(row) {
+        if (row[4]) {
+          state.calendarEvents.push({
+            id: row[0] || Date.now(),
+            date: row[1] || '',
+            month: row[2] || '',
+            monthName: row[3] || '',
+            title: row[4],
+            time: row[5] || '',
+            location: row[6] || ''
+          });
+        }
+      });
+    }
+
+    // 4. อ่านรายการอุปกรณ์ในคลัง
+    var eqSheet = ss.getSheetByName("รายการอุปกรณ์ในคลัง");
+    if (eqSheet && eqSheet.getLastRow() > 1) {
+      var eqVals = eqSheet.getRange(2, 1, eqSheet.getLastRow() - 1, 6).getValues();
+      eqVals.forEach(function(row) {
+        if (row[1]) {
+          state.equipmentList.push({
+            id: row[0] || Date.now(),
+            name: row[1],
+            category: row[2] || 'ทั่วไป',
+            totalQty: parseInt(row[3]) || 1,
+            image: row[4] || '',
+            description: row[5] || ''
+          });
+        }
+      });
+    }
+
+    // 5. อ่านคำร้องขอยืมอุปกรณ์
+    var bSheet = ss.getSheetByName("คำร้องขอยืมอุปกรณ์");
+    if (bSheet && bSheet.getLastRow() > 1) {
+      var bVals = bSheet.getRange(2, 1, bSheet.getLastRow() - 1, 14).getValues();
+      bVals.forEach(function(row) {
+        if (row[0]) {
+          var yStr = (row[5] || '').toString().replace(/[^0-9]/g, '') || '1';
+          state.borrowRequests.push({
+            id: row[0],
+            createdAt: row[1] || '',
+            studentId: row[2] || '',
+            studentName: row[3] || '',
+            major: row[4] || '',
+            year: yStr,
+            phone: row[6] || '',
+            equipmentName: row[7] || '',
+            qty: parseInt(row[8]) || 1,
+            borrowDate: row[9] || '',
+            returnDate: row[10] || '',
+            orgName: row[11] || '',
+            purpose: row[12] || '',
+            status: row[13] || 'รออนุมัติ'
+          });
+        }
+      });
+    }
+
+    // 6. อ่านสาขาวิชา
+    var mSheet = ss.getSheetByName("สาขาวิชา");
+    if (mSheet && mSheet.getLastRow() > 1) {
+      var mVals = mSheet.getRange(2, 1, mSheet.getLastRow() - 1, 2).getValues();
+      mVals.forEach(function(row) {
+        if (row[1]) {
+          state.majors.push(row[1].toString().trim());
+        }
+      });
+    }
+
+    // 7. อ่านผู้ดูแลระบบ
+    var uSheet = ss.getSheetByName("ผู้ดูแลระบบ");
+    if (uSheet && uSheet.getLastRow() > 1) {
+      var uVals = uSheet.getRange(2, 1, uSheet.getLastRow() - 1, 4).getValues();
+      uVals.forEach(function(row) {
+        if (row[2]) {
+          state.adminUsers.push({
+            id: row[0] || Date.now(),
+            fullname: row[1] || '',
+            username: row[2],
+            role: row[3] || 'Admin'
+          });
+        }
+      });
+    }
+
+    if (state.activities.length > 0 || state.newsList.length > 0 || state.equipmentList.length > 0) {
+      return state;
+    }
+  } catch (err) {
+    Logger.log("Error reading state from sheets: " + err.toString());
   }
   return null;
 }
