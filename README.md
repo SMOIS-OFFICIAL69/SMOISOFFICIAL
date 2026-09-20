@@ -57,6 +57,7 @@
 * **Backend**: Google Apps Script (`Code.gs`)
 * **Database / Storage**: 
   * **Google Sheets**: จัดเก็บข้อมูลโครงสร้างแบบตาราง (10 แผ่นชีท)
+  * **ScriptProperties (Chunked Storage)**: ซิงค์สถานะระบบทั้งหมดระหว่างอุปกรณ์ต่าง ๆ (Multi-Device Sync) แบบเรียลไทม์
   * **Google Drive**: สำรองไฟล์โครงสร้างระบบ (`latest_system_state.json`) และไฟล์ประวัติ
   * **LocalStorage**: แคชข้อมูลบนฝั่งเบราว์เซอร์เพื่อความรวดเร็วในการเปิดใช้งาน
 

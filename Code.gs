@@ -108,14 +108,7 @@ function doGet(e) {
 
     // 1.2 หน้าเว็บขอข้อมูลงบกลาง/สถานะระบบ (getState)
     if (action === 'getState') {
-      var scriptProperties = PropertiesService.getScriptProperties();
-      var rawState = scriptProperties.getProperty('KKU_APP_STATE');
-      var state = null;
-      if (rawState) {
-        try {
-          state = JSON.parse(rawState);
-        } catch (e) {}
-      }
+      var state = getStateFromProperties();
       if (!state) {
         state = getStateFromDriveBackup();
       }
@@ -195,17 +188,7 @@ function doPost(e) {
     // 1. บันทึกโครงสร้างข้อมูลระบบทั้งหมด (saveState) -> Google Sheets & Google Drive
     if (data.action === 'saveState') {
       var state = data.state;
-      var scriptProperties = PropertiesService.getScriptProperties();
-      try {
-        var jsonStr = JSON.stringify(state);
-        if (jsonStr.length < 9000) {
-          scriptProperties.setProperty('KKU_APP_STATE', jsonStr);
-        } else {
-          scriptProperties.deleteProperty('KKU_APP_STATE');
-        }
-      } catch (e) {
-        try { scriptProperties.deleteProperty('KKU_APP_STATE'); } catch (err) {}
-      }
+      saveStateToProperties(state);
 
       // 1.1 บันทึกลง Google Sheets
       saveAllStateToSheets(state);
@@ -634,6 +617,61 @@ function getOrCreateBackupFolder() {
   } else {
     return DriveApp.createFolder(folderName);
   }
+}
+
+function saveStateToProperties(state) {
+  if (!state) return;
+  var scriptProperties = PropertiesService.getScriptProperties();
+  try {
+    var jsonStr = JSON.stringify(state);
+    var chunkSize = 8000;
+    var totalChunks = Math.ceil(jsonStr.length / chunkSize);
+    scriptProperties.setProperty('KKU_STATE_TOTAL_CHUNKS', totalChunks.toString());
+
+    for (var i = 0; i < totalChunks; i++) {
+      var chunk = jsonStr.substring(i * chunkSize, (i + 1) * chunkSize);
+      scriptProperties.setProperty('KKU_STATE_CHUNK_' + i, chunk);
+    }
+
+    var oldChunks = scriptProperties.getProperty('KKU_STATE_PREV_CHUNKS');
+    if (oldChunks) {
+      var prevCount = parseInt(oldChunks, 10);
+      for (var k = totalChunks; k < prevCount; k++) {
+        scriptProperties.deleteProperty('KKU_STATE_CHUNK_' + k);
+      }
+    }
+    scriptProperties.setProperty('KKU_STATE_PREV_CHUNKS', totalChunks.toString());
+  } catch (err) {
+    Logger.log("Error saving state to properties: " + err.toString());
+  }
+}
+
+function getStateFromProperties() {
+  var scriptProperties = PropertiesService.getScriptProperties();
+  try {
+    var totalChunksStr = scriptProperties.getProperty('KKU_STATE_TOTAL_CHUNKS');
+    if (!totalChunksStr) {
+      var raw = scriptProperties.getProperty('KKU_APP_STATE');
+      if (raw) return JSON.parse(raw);
+      return null;
+    }
+
+    var totalChunks = parseInt(totalChunksStr, 10);
+    var fullJson = '';
+    for (var i = 0; i < totalChunks; i++) {
+      var chunk = scriptProperties.getProperty('KKU_STATE_CHUNK_' + i);
+      if (chunk) {
+        fullJson += chunk;
+      }
+    }
+
+    if (fullJson) {
+      return JSON.parse(fullJson);
+    }
+  } catch (err) {
+    Logger.log("Error reading state from properties: " + err.toString());
+  }
+  return null;
 }
 
 function getStateFromDriveBackup() {
