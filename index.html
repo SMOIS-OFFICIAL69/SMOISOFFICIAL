@@ -3405,9 +3405,13 @@
                 }
 
                 act.applicants = (parseInt(act.applicants) || 0) + 1;
-                saveAllToLocalStorage();
+                cacheDataLocally();
                 renderActivities();
                 renderAdminActivityTable();
+                renderAdminStats();
+
+                syncApplicantsFromGoogleSheets();
+                refreshStateFromServer();
 
                 registerModal.hide();
                 alert(`🎉 ลงทะเบียนเข้าร่วมกิจกรรม "${act.title}" สำเร็จเรียบร้อยแล้ว!`);

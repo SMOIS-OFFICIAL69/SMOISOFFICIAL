@@ -17,6 +17,140 @@
  * 7. กด "ทำให้ใช้งานได้อย่างเป็นทางการ" (Deploy) แล้วให้สิทธิ์เข้าถึง (Authorize Access) ให้เรียบร้อย
  */
 
+function onOpen() {
+  try {
+    var ui = SpreadsheetApp.getUi();
+    ui.createMenu('⚙️ ระบบสโมสรนักศึกษา')
+      .addItem('🔄 กู้คืนข้อมูลการลงทะเบียนจาก Google Drive Backup', 'restoreRegistrationsFromDriveBackup')
+      .addItem('📊 อัปเดตสรุปยอดผู้เข้าร่วมกิจกรรมทุกชีท', 'updateActivitySummarySheet')
+      .addToUi();
+  } catch(e) {}
+}
+
+/**
+ * ==============================================================================
+ * ฟังก์ชันกู้คืนข้อมูลการลงทะเบียนจาก Google Drive Backup (Restore Registrations)
+ * ==============================================================================
+ */
+function restoreRegistrationsFromDriveBackup() {
+  var ss = getSpreadsheet();
+  if (!ss) return "ไม่สามารถเปิดสเปรดชีตได้";
+
+  var folder = getOrCreateBackupFolder();
+  var files = folder.getFilesByName("all_activity_registrations.json");
+  if (!files.hasNext()) {
+    var msgNoFile = "ไม่พบไฟล์สำรอง all_activity_registrations.json ใน Google Drive";
+    try { SpreadsheetApp.getUi().alert(msgNoFile); } catch(e) {}
+    return msgNoFile;
+  }
+
+  var file = files.next();
+  var content = file.getContent();
+  if (!content || content.trim() === "" || content === "[]") {
+    var msgEmpty = "ไม่พบรายการสำรองข้อมูลผู้ลงทะเบียนใน Google Drive";
+    try { SpreadsheetApp.getUi().alert(msgEmpty); } catch(e) {}
+    return msgEmpty;
+  }
+
+  var records = [];
+  try {
+    records = JSON.parse(content);
+  } catch (e) {
+    var msgErr = "ไฟล์สำรองข้อมูลใน Google Drive เสียหายไม่สามารถอ่านได้: " + e.toString();
+    try { SpreadsheetApp.getUi().alert(msgErr); } catch(e) {}
+    return msgErr;
+  }
+
+  if (!Array.isArray(records) || records.length === 0) {
+    var msgZero = "ไม่มีข้อมูลผู้ลงทะเบียนที่ต้องกู้คืน";
+    try { SpreadsheetApp.getUi().alert(msgZero); } catch(e) {}
+    return msgZero;
+  }
+
+  var masterSheet = getOrCreateSheet(ss, "ข้อมูลการลงทะเบียนกิจกรรม");
+  if (masterSheet.getLastRow() === 0) {
+    var headers = [
+      "ชื่อกิจกรรม", "วัน-เวลาที่ลงทะเบียน", "รหัสนักศึกษา", "ชื่อ-นามสกุล", "สาขาวิชา",
+      "ชั้นปี", "เบอร์โทรศัพท์", "โรคประจำตัว/แพ้อาหาร", "คำตอบเพิ่มเติม"
+    ];
+    createSheetHeader(masterSheet, headers);
+  }
+
+  var existingMap = {};
+  var lastRow = masterSheet.getLastRow();
+  if (lastRow > 1) {
+    var existingVals = masterSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    existingVals.forEach(function(row) {
+      var key = (row[0] || '').toString().trim() + '_' + (row[1] || '').toString().trim() + '_' + (row[2] || '').toString().trim();
+      existingMap[key] = true;
+    });
+  }
+
+  var restoredCount = 0;
+  records.forEach(function(rec) {
+    var actTitle = rec.activityTitle || 'กิจกรรมทั่วไป';
+    var timeStr = rec.timestamp || '-';
+    var sId = rec.studentId || '-';
+    var key = actTitle.trim() + '_' + timeStr.trim() + '_' + sId.trim();
+
+    if (!existingMap[key]) {
+      var rowData = [
+        actTitle,
+        timeStr,
+        sId,
+        rec.name || '-',
+        rec.major || '-',
+        rec.year || '-',
+        rec.phone || '-',
+        rec.medical || '-',
+        rec.customAnswers || '-'
+      ];
+      masterSheet.appendRow(rowData);
+      existingMap[key] = true;
+      restoredCount++;
+
+      try {
+        var actSheet = getOrCreateActivitySheet(ss, actTitle);
+        if (actSheet) {
+          var actRowData = [
+            timeStr,
+            sId,
+            rec.name || '-',
+            rec.major || '-',
+            rec.year || '-',
+            rec.phone || '-',
+            rec.medical || '-',
+            rec.customAnswers || '-'
+          ];
+          actSheet.appendRow(actRowData);
+        }
+      } catch(e) {}
+
+      try {
+        updateOrAddStudentProfile(ss, {
+          studentId: sId,
+          name: rec.name,
+          major: rec.major,
+          year: rec.year,
+          phone: rec.phone,
+          medical: rec.medical
+        });
+      } catch(e) {}
+    }
+  });
+
+  try {
+    updateActivitySummarySheet(ss);
+  } catch(e) {}
+
+  var resultMsg = "🎉 กู้คืนข้อมูลเรียบร้อยแล้ว! นำเข้าข้อมูลใหม่ทั้งหมด " + restoredCount + " รายการ";
+  Logger.log(resultMsg);
+  try {
+    SpreadsheetApp.getUi().alert(resultMsg);
+  } catch(e) {}
+  return resultMsg;
+}
+
 function doGet(e) {
   try {
     var params = e ? e.parameter : {};
@@ -126,26 +260,51 @@ function doGet(e) {
       var registrations = [];
 
       if (ss && targetTitle) {
-        var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
-        if (regSheet) {
-          var lastRow = regSheet.getLastRow();
-          if (lastRow > 1) {
-            var values = regSheet.getRange(2, 1, lastRow - 1, 9).getValues();
-            for (var r = 0; r < values.length; r++) {
-              var row = values[r];
-              var actTitle = (row[0] || '').toString().trim();
-              if (actTitle.toLowerCase() === targetTitle.toLowerCase() || targetTitle === 'all') {
-                registrations.push({
-                  activityTitle: row[0],
-                  timestamp: row[1],
-                  studentId: row[2],
-                  name: row[3],
-                  major: row[4],
-                  year: row[5],
-                  phone: row[6],
-                  medical: row[7],
-                  customAnswers: row[8]
-                });
+        var foundInSpecific = false;
+        if (targetTitle !== 'all') {
+          var actSheetName = getActivitySheetName(targetTitle);
+          var specificSheet = ss.getSheetByName(actSheetName);
+          if (specificSheet && specificSheet.getLastRow() > 1) {
+            var specVals = specificSheet.getRange(2, 1, specificSheet.getLastRow() - 1, 8).getValues();
+            specVals.forEach(function(row) {
+              registrations.push({
+                activityTitle: targetTitle,
+                timestamp: row[0],
+                studentId: row[1],
+                name: row[2],
+                major: row[3],
+                year: row[4],
+                phone: row[5],
+                medical: row[6],
+                customAnswers: row[7]
+              });
+            });
+            foundInSpecific = true;
+          }
+        }
+
+        if (!foundInSpecific) {
+          var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
+          if (regSheet) {
+            var lastRow = regSheet.getLastRow();
+            if (lastRow > 1) {
+              var values = regSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+              for (var r = 0; r < values.length; r++) {
+                var row = values[r];
+                var actTitle = (row[0] || '').toString().trim();
+                if (actTitle.toLowerCase() === targetTitle.toLowerCase() || targetTitle === 'all') {
+                  registrations.push({
+                    activityTitle: row[0],
+                    timestamp: row[1],
+                    studentId: row[2],
+                    name: row[3],
+                    major: row[4],
+                    year: row[5],
+                    phone: row[6],
+                    medical: row[7],
+                    customAnswers: row[8]
+                  });
+                }
               }
             }
           }
@@ -258,6 +417,7 @@ function doPost(e) {
       var regSheet = ss ? ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม") : null;
       var updated = false;
 
+      // 3.1 แก้ไขในชีท master รวม
       if (regSheet) {
         var lastRow = regSheet.getLastRow();
         if (lastRow > 1) {
@@ -289,6 +449,33 @@ function doPost(e) {
         }
       }
 
+      // 3.2 แก้ไขในแท็บแยกกิจกรรม
+      try {
+        var actSheetName = getActivitySheetName(targetTitle);
+        var actSheet = ss ? ss.getSheetByName(actSheetName) : null;
+        if (actSheet && actSheet.getLastRow() > 1) {
+          var actVals = actSheet.getRange(2, 1, actSheet.getLastRow() - 1, 8).getValues();
+          for (var av = 0; av < actVals.length; av++) {
+            var avTime = (actVals[av][0] || '').toString().trim();
+            var avStudentId = (actVals[av][1] || '').toString().trim();
+            if (avStudentId === targetStudentId || (targetTimestamp && avTime === targetTimestamp)) {
+              var newYearAct = data.year ? (data.year.toString().indexOf('ปี') !== -1 ? data.year : 'ปี ' + data.year) : '-';
+              actSheet.getRange(av + 2, 2, 1, 7).setValues([[
+                data.studentId || avStudentId,
+                data.name || '-',
+                data.major || '-',
+                newYearAct,
+                data.phone || '-',
+                data.medical || '-',
+                data.customAnswers || '-'
+              ]]);
+              updated = true;
+              break;
+            }
+          }
+        }
+      } catch(e) {}
+
       if (updated) {
         try { updateOrAddStudentProfile(ss, { studentId: data.studentId, name: data.name, major: data.major, year: data.year, phone: data.phone, medical: data.medical }); } catch (e) {}
         try { updateActivitySummarySheet(ss); } catch (e) {}
@@ -308,6 +495,7 @@ function doPost(e) {
       var regSheet = ss ? ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม") : null;
       var deleted = false;
 
+      // 4.1 ลบจากชีท master รวม
       if (regSheet) {
         var lastRow = regSheet.getLastRow();
         if (lastRow > 1) {
@@ -329,6 +517,24 @@ function doPost(e) {
         }
       }
 
+      // 4.2 ลบจากแท็บแยกกิจกรรม
+      try {
+        var actSheetNameDel = getActivitySheetName(targetTitle);
+        var actSheetDel = ss ? ss.getSheetByName(actSheetNameDel) : null;
+        if (actSheetDel && actSheetDel.getLastRow() > 1) {
+          var actValsDel = actSheetDel.getRange(2, 1, actSheetDel.getLastRow() - 1, 8).getValues();
+          for (var ad = actValsDel.length - 1; ad >= 0; ad--) {
+            var adTime = (actValsDel[ad][0] || '').toString().trim();
+            var adStudentId = (actValsDel[ad][1] || '').toString().trim();
+            if (adStudentId === targetStudentId || (targetTimestamp && adTime === targetTimestamp)) {
+              actSheetDel.deleteRow(ad + 2);
+              deleted = true;
+              break;
+            }
+          }
+        }
+      } catch(e) {}
+
       if (deleted) {
         try { updateActivitySummarySheet(ss); } catch (e) {}
         return createJsonResponse({ status: 'success', message: 'ลบข้อมูลผู้ลงทะเบียนเรียบร้อยแล้ว' });
@@ -342,6 +548,29 @@ function doPost(e) {
     var regInfo = data.data || data;
 
     var ss = getSpreadsheet();
+    var timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+
+    // 5.1 บันทึกลงในแท็บแยกของกิจกรรมเฉพาะ
+    try {
+      var actSheet = getOrCreateActivitySheet(ss, activityTitle);
+      if (actSheet) {
+        var actRowData = [
+          timestamp,
+          regInfo.studentId || regInfo.student_id || '-',
+          regInfo.name || '-',
+          regInfo.major || '-',
+          regInfo.year ? 'ปี ' + regInfo.year : '-',
+          regInfo.phone || '-',
+          regInfo.medical || '-',
+          regInfo.customAnswers || '-'
+        ];
+        actSheet.appendRow(actRowData);
+      }
+    } catch (e) {
+      Logger.log("ไม่สามารถบันทึกลงแท็บแยกกิจกรรมได้: " + e.toString());
+    }
+
+    // 5.2 บันทึกลงในชีท master รวม "ข้อมูลการลงทะเบียนกิจกรรม"
     var regSheetName = "ข้อมูลการลงทะเบียนกิจกรรม";
     var sheet = getOrCreateSheet(ss, regSheetName);
 
@@ -353,7 +582,6 @@ function doPost(e) {
       createSheetHeader(sheet, headers);
     }
 
-    var timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
     var rowData = [
       activityTitle,
       timestamp,
@@ -463,6 +691,9 @@ function saveAllStateToSheets(state) {
 
     state.activities.forEach(function(a) {
       if (!a) return;
+      if (a.title) {
+        try { getOrCreateActivitySheet(ss, a.title); } catch(e) {}
+      }
       var customSecs = a.customSections || (a.customQuestions ? [{ id: 'sec_1', title: 'ส่วนเพิ่มเติม', questions: a.customQuestions }] : []);
       var customJsonStr = (customSecs && customSecs.length > 0) ? JSON.stringify(customSecs) : '';
 
@@ -1176,17 +1407,69 @@ function getSpreadsheet() {
   var ss = null;
   try {
     ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) {
+      var activeId = ss.getId();
+      if (activeId) {
+        try {
+          PropertiesService.getScriptProperties().setProperty('BOUND_SHEET_ID', activeId);
+        } catch(e) {}
+      }
+      return ss;
+    }
   } catch (e) {}
 
-  if (!ss) {
-    var targetId = "13PkrBncnM9jSBSifhp4Q0lyvULqPxGr0kxmumHWUKdA";
-    try {
-      ss = SpreadsheetApp.openById(targetId);
-    } catch (e) {
-      Logger.log("ไม่สามารถเปิด Google Sheet ด้วย ID ได้: " + e.toString());
+  try {
+    var savedId = PropertiesService.getScriptProperties().getProperty('BOUND_SHEET_ID');
+    if (savedId) {
+      ss = SpreadsheetApp.openById(savedId);
+      if (ss) return ss;
     }
+  } catch (e) {}
+
+  var targetId = "13PkrBncnM9jSBSifhp4Q0lyvULqPxGr0kxmumHWUKdA";
+  try {
+    ss = SpreadsheetApp.openById(targetId);
+    if (ss) {
+      try {
+        PropertiesService.getScriptProperties().setProperty('BOUND_SHEET_ID', targetId);
+      } catch(e) {}
+      return ss;
+    }
+  } catch (e) {
+    Logger.log("ไม่สามารถเปิด Google Sheet ด้วย ID ได้: " + e.toString());
   }
   return ss;
+}
+
+function getActivitySheetName(activityTitle) {
+  if (!activityTitle) return "กิจกรรมทั่วไป";
+  var name = activityTitle.toString().replace(/[\/\\?\*:\[\]]/g, ' ').trim();
+  if (name.length > 90) {
+    name = name.substring(0, 87) + '...';
+  }
+  return name || "กิจกรรมทั่วไป";
+}
+
+function getOrCreateActivitySheet(ss, activityTitle) {
+  if (!ss) ss = getSpreadsheet();
+  if (!ss) return null;
+
+  var sheetName = getActivitySheetName(activityTitle);
+  var sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+
+  if (sheet.getLastRow() === 0) {
+    var headers = [
+      "วัน-เวลาที่ลงทะเบียน", "รหัสนักศึกษา", "ชื่อ-นามสกุล", "สาขาวิชา",
+      "ชั้นปี", "เบอร์โทรศัพท์", "โรคประจำตัว/แพ้อาหาร", "คำตอบเพิ่มเติม"
+    ];
+    createSheetHeader(sheet, headers);
+  }
+
+  return sheet;
 }
 
 function getOrCreateSheet(ss, name) {
