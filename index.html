@@ -1315,8 +1315,13 @@
                     <p class="text-muted small m-0 mt-1">
                         เลือกกิจกรรมที่สนใจและกดลงทะเบียนเพื่อเข้าร่วมสะสมชั่วโมงกิจกรรม</p>
                 </div>
-                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill"><i
-                        class="bi bi-info-circle text-primary me-1"></i> อัปเดตสถานะแบบเรียลไทม์</span>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm" onclick="openStudentCheckRegModal()">
+                        <i class="bi bi-search me-1"></i> ตรวจสอบการลงทะเบียนกิจกรรม
+                    </button>
+                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill"><i
+                            class="bi bi-info-circle text-primary me-1"></i> อัปเดตสถานะแบบเรียลไทม์</span>
+                </div>
             </div>
         </div>
         <div class="row row-cols-1 row-cols-md-3 g-4" id="activity-grid"></div>
@@ -2975,6 +2980,42 @@
             </div>
         </div>
 
+        <!-- Modal: Student Check Activity Registration Status Modal -->
+        <div class="modal fade" id="studentCheckRegModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header bg-danger text-white p-3">
+                        <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2 m-0">
+                            <i class="bi bi-search fs-4 text-warning"></i> ตรวจสอบการลงทะเบียนกิจกรรมนักศึกษา
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 mb-3 bg-white">
+                            <label class="form-label fw-bold text-dark mb-1"><i class="bi bi-person-vcard text-danger me-1"></i> ค้นหาประวัติด้วยรหัสนักศึกษา หรือชื่อ-นามสกุล</label>
+                            <div class="input-group input-group-lg">
+                                <input type="text" id="check-reg-search-input" class="form-control rounded-start-pill fs-6" placeholder="ระบุรหัสนักศึกษา (เช่น 683450329-0) หรือชื่อ-นามสกุล..." onkeyup="if(event.key==='Enter') searchStudentRegistrationsStatus()">
+                                <button class="btn btn-danger rounded-end-pill px-4" type="button" onclick="searchStudentRegistrationsStatus()">
+                                    <i class="bi bi-search me-1"></i> ค้นหา
+                                </button>
+                            </div>
+                            <span class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i> ป้อนรหัสนักศึกษาเพื่อดูรายชื่อกิจกรรมที่คุณเคยลงทะเบียนไว้ทั้งหมด</span>
+                        </div>
+
+                        <div id="check-reg-results-container">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-text display-4 opacity-50 d-block mb-2"></i>
+                                <span>กรอกรหัสนักศึกษาแล้วกดปุ่ม "ค้นหา" เพื่อตรวจสอบสถานะการลงทะเบียน</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 p-3">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </footer>
 
     <!-- Bootstrap 5 JS Bundle -->
@@ -3429,7 +3470,7 @@
         let currentManageOrgId = null;
 
         let registerModal, eventFormModal, newsFormModal, calendarFormModal, userFormModal, newsDetailModal, eventDetailModal, memberDetailModal, imagePreviewModal;
-        let orgFormModal, manageMembersModal, memberFormModal, borrowModal, equipmentFormModal, borrowRequestEditModal, activityRegistrationsModal, editRegistrationModal;
+        let orgFormModal, manageMembersModal, memberFormModal, borrowModal, equipmentFormModal, borrowRequestEditModal, activityRegistrationsModal, editRegistrationModal, studentCheckRegModal;
 
         let isSyncingWithServer = false;
 
@@ -3451,6 +3492,7 @@
             borrowRequestEditModal = new bootstrap.Modal(document.getElementById('borrowRequestEditModal'));
             activityRegistrationsModal = new bootstrap.Modal(document.getElementById('activityRegistrationsModal'));
             editRegistrationModal = new bootstrap.Modal(document.getElementById('editRegistrationModal'));
+            studentCheckRegModal = new bootstrap.Modal(document.getElementById('studentCheckRegModal'));
 
             const remoteState = await fetchStateFromServer();
             if (remoteState) {
@@ -5871,6 +5913,121 @@
         function scrollToBorrowCheck() {
             const el = document.getElementById('borrow-check-section');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function openStudentCheckRegModal() {
+            if (!studentCheckRegModal) {
+                studentCheckRegModal = new bootstrap.Modal(document.getElementById('studentCheckRegModal'));
+            }
+            document.getElementById('check-reg-search-input').value = '';
+            document.getElementById('check-reg-results-container').innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-journal-text display-4 opacity-50 d-block mb-2"></i>
+                    <span>กรอกรหัสนักศึกษาแล้วกดปุ่ม "ค้นหา" เพื่อตรวจสอบสถานะการลงทะเบียน</span>
+                </div>
+            `;
+            studentCheckRegModal.show();
+        }
+
+        async function searchStudentRegistrationsStatus() {
+            const input = (document.getElementById('check-reg-search-input').value || '').trim();
+            const container = document.getElementById('check-reg-results-container');
+            if (!input) {
+                alert('กรุณาระบุรหัสนักศึกษา หรือชื่อ-นามสกุล เพื่อค้นหา');
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-danger mb-2"></div>
+                    <p class="text-muted m-0">กำลังค้นหาประวัติการลงทะเบียนกิจกรรมจากเซิร์ฟเวอร์...</p>
+                </div>
+            `;
+
+            const cleanId = input.replace(/[^0-9]/g, '');
+            let registrations = [];
+
+            if (SCRIPT_URL && SCRIPT_URL.trim() !== '') {
+                try {
+                    const res = await fetch(`${SCRIPT_URL}?action=getActivityRegistrations&activityTitle=all`);
+                    const data = await res.json();
+                    if (data && Array.isArray(data.registrations)) {
+                        registrations = data.registrations.filter(r => {
+                            const rCleanId = (r.studentId || '').toString().replace(/[^0-9]/g, '');
+                            const rName = (r.name || '').toString().toLowerCase();
+                            const matchesId = cleanId && rCleanId === cleanId;
+                            const matchesName = rName.includes(input.toLowerCase());
+                            return matchesId || matchesName;
+                        });
+                    }
+                } catch (e) {
+                    console.warn('ค้นหาประวัติจาก Google Sheets ไม่สำเร็จ:', e);
+                }
+            }
+
+            const cleanFn = (s) => (s || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            if (registrations.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning border-0 shadow-sm rounded-4 p-4 text-center">
+                        <i class="bi bi-exclamation-circle display-5 text-warning d-block mb-2"></i>
+                        <h6 class="fw-bold text-dark mb-1">ไม่พบข้อมูลการลงทะเบียนกิจกรรม</h6>
+                        <p class="text-muted small m-0">ไม่พบประวัติการลงทะเบียนสำหรับ "${cleanFn(input)}" กรุณาตรวจสอบรหัสนักศึกษาอีกครั้ง</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="fw-bold m-0 text-success"><i class="bi bi-check-circle-fill me-1"></i> พบข้อมูลการลงทะเบียนทั้งหมด ${registrations.length} รายการ</h6>
+                        <small class="text-muted">ข้อมูลอัปเดตตรงจากฐานข้อมูล Google Sheets</small>
+                    </div>
+                    <span class="badge bg-success rounded-pill px-3 py-2">ลงทะเบียนเรียบร้อย</span>
+                </div>
+                <div class="table-responsive bg-white rounded-4 shadow-sm border p-2">
+                    <table class="table table-hover align-middle m-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>กิจกรรมที่ลงทะเบียน</th>
+                                <th>วัน-เวลาบันทึก</th>
+                                <th>ข้อมูลผู้สมัคร</th>
+                                <th>สถานะชีท</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            registrations.forEach((rec, idx) => {
+                html += `
+                    <tr>
+                        <td class="fw-bold text-muted">${idx + 1}</td>
+                        <td>
+                            <span class="fw-bold text-dark d-block">${cleanFn(rec.activityTitle || '-')}</span>
+                        </td>
+                        <td class="small text-muted">${cleanFn(rec.timestamp || '-')}</td>
+                        <td>
+                            <span class="d-block fw-semibold text-dark">${cleanFn(rec.name || '-')} (${cleanFn(rec.studentId || '-')})</span>
+                            <small class="text-muted">${cleanFn(rec.major || '-')} ${cleanFn(rec.year || '-')}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">
+                                <i class="bi bi-check-all me-1"></i>บันทึกชีทเรียบร้อย
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
         }
 
         function openBorrowModal(equipId) {

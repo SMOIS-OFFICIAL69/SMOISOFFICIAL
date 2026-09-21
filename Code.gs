@@ -21,10 +21,112 @@ function onOpen() {
   try {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu('⚙️ ระบบสโมสรนักศึกษา')
+      .addItem('🔍 ตรวจสอบการลงทะเบียนกิจกรรม', 'checkActivityRegistrationStatus')
       .addItem('🔄 กู้คืนข้อมูลการลงทะเบียนจาก Google Drive Backup', 'restoreRegistrationsFromDriveBackup')
       .addItem('📊 อัปเดตสรุปยอดผู้เข้าร่วมกิจกรรมทุกชีท', 'updateActivitySummarySheet')
       .addToUi();
   } catch(e) {}
+}
+
+/**
+ * ==============================================================================
+ * ฟังก์ชันตรวจสอบการลงทะเบียนกิจกรรม (Check Registration Status)
+ * ==============================================================================
+ */
+function checkActivityRegistrationStatus() {
+  try {
+    var ui = SpreadsheetApp.getUi();
+    var response = ui.prompt(
+      '🔍 ตรวจสอบการลงทะเบียนกิจกรรม',
+      'กรอกรหัสนักศึกษา หรือชื่อนักศึกษาที่ต้องการค้นหาประวัติการลงทะเบียน (หรือปล่อยว่างเพื่อดูสรุปสถิติทุุกกิจกรรม):',
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (response.getSelectedButton() !== ui.Button.OK) return;
+
+    var input = (response.getResponseText() || '').trim();
+    var ss = getSpreadsheet();
+    if (!ss) {
+      ui.alert('ไม่สามารถเปิด Google Sheet ได้');
+      return;
+    }
+
+    if (input !== '') {
+      var cleanSearchId = input.replace(/[^0-9]/g, '');
+      var foundRecords = [];
+
+      var masterSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
+      if (masterSheet && masterSheet.getLastRow() > 1) {
+        var vals = masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, 9).getValues();
+        vals.forEach(function(row) {
+          var actTitle = (row[0] || '').toString();
+          var timeStr = (row[1] || '').toString();
+          var sId = (row[2] || '').toString();
+          var name = (row[3] || '').toString();
+          var cleanRowId = sId.replace(/[^0-9]/g, '');
+
+          var matchesId = cleanSearchId && cleanRowId === cleanSearchId;
+          var matchesName = name.toLowerCase().indexOf(input.toLowerCase()) !== -1;
+
+          if (matchesId || matchesName) {
+            foundRecords.push({
+              activityTitle: actTitle,
+              timestamp: timeStr,
+              studentId: sId,
+              name: name,
+              major: row[4],
+              year: row[5],
+              phone: row[6],
+              medical: row[7],
+              customAnswers: row[8]
+            });
+          }
+        });
+      }
+
+      if (foundRecords.length > 0) {
+        var msg = "🎉 พบประวัติการลงทะเบียนกิจกรรมจำนวน " + foundRecords.length + " รายการสำหรับ: " + input + "\n\n";
+        foundRecords.forEach(function(rec, idx) {
+          msg += (idx + 1) + ". " + rec.activityTitle + "\n";
+          msg += "   - วันเวลา: " + rec.timestamp + "\n";
+          msg += "   - ชื่อ: " + rec.name + " (" + rec.studentId + ")\n";
+          msg += "   - สาขา/ปี: " + rec.major + " " + rec.year + "\n";
+          if (rec.medical && rec.medical !== '-') msg += "   - ข้อมูลสุขภาพ: " + rec.medical + "\n";
+          msg += "\n";
+        });
+        ui.alert('ผลการตรวจสอบการลงทะเบียน', msg, ui.ButtonSet.OK);
+      } else {
+        ui.alert('ผลการตรวจสอบการลงทะเบียน', '❌ ไม่พบข้อมูลการลงทะเบียนกิจกรรมสำหรับ: "' + input + '"', ui.ButtonSet.OK);
+      }
+    } else {
+      var regSheet = ss.getSheetByName("ข้อมูลการลงทะเบียนกิจกรรม");
+      var totalCount = 0;
+      var actStats = {};
+
+      if (regSheet && regSheet.getLastRow() > 1) {
+        var data = regSheet.getRange(2, 1, regSheet.getLastRow() - 1, 1).getValues();
+        data.forEach(function(row) {
+          var t = (row[0] || 'กิจกรรมทั่วไป').toString().trim();
+          actStats[t] = (actStats[t] || 0) + 1;
+          totalCount++;
+        });
+      }
+
+      var statsMsg = "📊 สรุปยอดผู้ลงทะเบียนทั้งหมดในระบบ (" + totalCount + " คน):\n\n";
+      var keys = Object.keys(actStats);
+      if (keys.length > 0) {
+        keys.forEach(function(k, i) {
+          statsMsg += (i + 1) + ". " + k + ": " + actStats[k] + " คน\n";
+        });
+      } else {
+        statsMsg += "ยังไม่มีข้อมูลผู้ลงทะเบียนในขณะนี้";
+      }
+
+      ui.alert('สรุปการลงทะเบียนกิจกรรมทั้งหมด', statsMsg, ui.ButtonSet.OK);
+    }
+  } catch(err) {
+    Logger.log("Error in checkActivityRegistrationStatus: " + err.toString());
+  }
 }
 
 /**
