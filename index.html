@@ -3610,7 +3610,14 @@
             if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
             try {
                 const res = await fetch(SCRIPT_URL + '?action=getState');
-                const data = await res.json();
+                const text = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch(parseErr) {
+                    console.warn('URL ของ Google Apps Script ตอบกลับเป็น HTML (เกิดจากยังไม่ได้กด Authorize Access หรือตั้งค่า Who has access ไม่ใช่ Anyone):', text.substring(0, 150));
+                    return null;
+                }
                 if (data && data.state) return data.state;
                 return null;
             } catch (err) {
@@ -3618,8 +3625,6 @@
                 return null;
             }
         }
-
-
 
         async function refreshStateFromServer() {
             if (isSyncingWithServer) return;
@@ -3664,8 +3669,10 @@
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") return;
 
             fetch(SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
+                .then(res => res.text())
+                .then(text => {
+                    let data = null;
+                    try { data = JSON.parse(text); } catch(e) { return; }
                     if (data && data.stats) {
                         activities.forEach(act => {
                             if (data.stats[act.title] !== undefined) {
